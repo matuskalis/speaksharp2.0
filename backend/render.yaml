@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: speaksharp-api
+    runtime: python
+    buildCommand: |
+      pip install -r requirements.txt
+      apt-get update && apt-get install -y ffmpeg
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: AZURE_SPEECH_KEY
+        sync: false
+      - key: AZURE_SPEECH_REGION
+        value: eastus
+      - key: API_PORT
+        value: 8001
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: False
+      - key: CORS_ORIGINS
+        value: https://frontend-6avxexj8o-m3kalis-3804s-projects.vercel.app

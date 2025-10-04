@@ -1,0 +1,25 @@
+# FastAPI and server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.11.1
+pydantic-settings==2.7.1
+
+# Azure Speech Services
+azure-cognitiveservices-speech==1.31.0
+
+# Allosaurus for phoneme detection
+allosaurus==1.0.2
+
+# Audio processing
+librosa==0.10.1
+soundfile==0.12.1
+pydub==0.25.1
+
+# CORS and middleware
+python-jose[cryptography]==3.3.0
+python-dotenv==1.0.0
+
+# HTTP client
+httpx==0.25.1
+aiofiles==23.2.1
