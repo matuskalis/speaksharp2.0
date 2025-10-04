@@ -72,15 +72,16 @@ export default function PracticePage() {
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
 
+          // Stop all tracks immediately to prevent browser sound
+          stream.getTracks().forEach(track => track.stop());
+
           // Check if audio is too short (< 500 bytes)
           if (audioBlob.size < 500) {
             alert('Recording too short! Please try again and speak for at least 1 second.');
-            stream.getTracks().forEach(track => track.stop());
             return;
           }
 
           await processAudio(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
         };
 
         mediaRecorder.start();
