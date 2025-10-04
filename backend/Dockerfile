@@ -17,5 +17,5 @@ COPY . .
 # Expose port
 EXPOSE 8001
 
-# Run uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Run uvicorn with PORT from environment (Render provides this)
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001}
