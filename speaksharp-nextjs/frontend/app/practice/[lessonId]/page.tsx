@@ -119,28 +119,74 @@ export default function PracticePage() {
     }
   };
 
+  // Convert WebM to WAV in browser using Web Audio API
+  const convertToWav = async (audioBlob: Blob): Promise<Blob> => {
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioContext = new AudioContext({ sampleRate: 16000 });
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    // Get audio data as Float32Array
+    const channelData = audioBuffer.getChannelData(0); // Mono
+
+    // Convert to 16-bit PCM WAV
+    const wavBuffer = encodeWav(channelData, audioBuffer.sampleRate);
+    return new Blob([wavBuffer], { type: 'audio/wav' });
+  };
+
+  const encodeWav = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    // WAV header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true); // PCM
+    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // Byte rate
+    view.setUint16(32, 2, true); // Block align
+    view.setUint16(34, 16, true); // 16-bit
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+
+    // Write PCM samples
+    const offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+
+    return buffer;
+  };
+
+  const writeString = (view: DataView, offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
   const processAudio = async (audioBlob: Blob, mimeType: string) => {
     try {
+      // Convert to WAV in browser (bypasses FFmpeg issues on backend)
+      console.log('Converting audio to WAV in browser...');
+      const wavBlob = await convertToWav(audioBlob);
+      console.log('WAV conversion complete:', wavBlob.size, 'bytes');
+
       const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
+      reader.readAsDataURL(wavBlob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
 
-        // Determine audio format from MIME type
-        let audioFormat = 'webm';
-        if (mimeType.includes('ogg')) {
-          audioFormat = 'ogg';
-        } else if (mimeType.includes('mp4') || mimeType.includes('m4a')) {
-          audioFormat = 'mp4';
-        }
-
-        console.log('Sending audio format:', audioFormat);
+        console.log('Sending WAV audio to backend');
 
         const response = await axios.post('https://speaksharp2-0.onrender.com/api/score', {
           text: currentExercise.word,
           audio_data: base64Audio,
           item_type: 'word',
-          audio_format: audioFormat
+          audio_format: 'wav'
         });
 
         const pronunciationScore = response.data.overall_score || response.data.pronunciation_score || 0;
