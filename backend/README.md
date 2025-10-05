@@ -111,3 +111,4 @@ curl -X POST http://localhost:8001/api/score \
   -F "text=hello" \
   -F "item_type=word"
 ```
+# Trigger redeploy
