@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     # Server configuration
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8001
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:19006,http://localhost:8081"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:19006,http://localhost:8081,https://matuskalis.com,https://www.matuskalis.com"
 
     # Environment
     ENVIRONMENT: str = "development"
