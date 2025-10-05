@@ -103,9 +103,21 @@ class AzureSpeechService:
                 return self._parse_azure_result(result, reference_text)
             elif result.reason == speechsdk.ResultReason.NoMatch:
                 logger.warning("No speech recognized in audio")
+                no_match_details = speechsdk.NoMatchDetails(result)
+                logger.warning(f"NoMatch reason: {no_match_details.reason}")
                 return {
                     "success": False,
                     "message": "No speech detected in audio",
+                    "recognized_text": "",
+                    "overall_score": 0.0
+                }
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                cancellation = speechsdk.CancellationDetails(result)
+                logger.error(f"Speech recognition CANCELED: {cancellation.reason}")
+                logger.error(f"Error details: {cancellation.error_details}")
+                return {
+                    "success": False,
+                    "message": f"Speech recognition canceled: {cancellation.error_details}",
                     "recognized_text": "",
                     "overall_score": 0.0
                 }
