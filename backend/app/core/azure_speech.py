@@ -201,12 +201,32 @@ class AzureSpeechService:
     def _convert_to_wav(self, audio_data: bytes, audio_format: str) -> Optional[bytes]:
         """Convert audio to WAV format using ffmpeg"""
         try:
+            # Check if ffmpeg is available
+            try:
+                check_result = subprocess.run(
+                    ["ffmpeg", "-version"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=5
+                )
+                if check_result.returncode != 0:
+                    logger.error("ffmpeg not found or not working")
+                    return None
+            except FileNotFoundError:
+                logger.error("ffmpeg command not found in system PATH")
+                return None
+            except Exception as e:
+                logger.error(f"Error checking ffmpeg: {str(e)}")
+                return None
+
             # Save input to temp file
             with tempfile.NamedTemporaryFile(suffix=f".{audio_format}", delete=False) as temp_input:
                 temp_input.write(audio_data)
                 input_path = temp_input.name
 
             output_path = input_path.rsplit(".", 1)[0] + ".wav"
+
+            logger.info(f"Converting {audio_format} ({len(audio_data)} bytes) from {input_path} to {output_path}")
 
             try:
                 # Use ffmpeg to convert to WAV (mono, 16kHz, 16-bit PCM)
@@ -235,7 +255,10 @@ class AzureSpeechService:
                     logger.info(f"Successfully converted {audio_format} to WAV ({len(wav_data)} bytes)")
                     return wav_data
                 else:
-                    logger.error(f"ffmpeg conversion failed: {result.stderr.decode()}")
+                    stderr_output = result.stderr.decode() if result.stderr else "No stderr output"
+                    logger.error(f"ffmpeg conversion failed (returncode={result.returncode}): {stderr_output}")
+                    logger.error(f"ffmpeg stdout: {result.stdout.decode() if result.stdout else 'No stdout'}")
+                    logger.error(f"Output path exists: {os.path.exists(output_path)}")
                     return None
 
             finally:
