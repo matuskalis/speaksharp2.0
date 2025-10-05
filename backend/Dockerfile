@@ -1,8 +1,13 @@
 FROM python:3.11
 
-# Install system dependencies including FFmpeg with full codec support
+# Install system dependencies including FFmpeg and Azure Speech SDK requirements
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    build-essential \
+    libssl-dev \
+    ca-certificates \
+    libasound2 \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
