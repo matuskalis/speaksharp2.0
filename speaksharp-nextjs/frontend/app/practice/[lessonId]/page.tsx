@@ -25,6 +25,7 @@ export default function PracticePage() {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStartTimeRef = useRef<number>(0);
 
   useEffect(() => {
     // Find lesson in learning path
@@ -61,30 +62,55 @@ export default function PracticePage() {
       // Start recording
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+        // Try different audio formats in order of preference
+        let mimeType = 'audio/webm;codecs=opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/webm';
+        }
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/ogg;codecs=opus';
+        }
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+        }
+
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
         mediaRecorderRef.current = mediaRecorder;
         audioChunksRef.current = [];
+
+        console.log('Recording with MIME type:', mimeType);
 
         mediaRecorder.ondataavailable = (event) => {
           audioChunksRef.current.push(event.data);
         };
 
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
 
           // Stop all tracks immediately to prevent browser sound
           stream.getTracks().forEach(track => track.stop());
 
-          // Check if audio is too short (< 500 bytes)
-          if (audioBlob.size < 500) {
-            alert('Recording too short! Please try again and speak for at least 1 second.');
+          // Check recording duration
+          const recordingDuration = Date.now() - recordingStartTimeRef.current;
+          if (recordingDuration < 300) {
+            alert('Recording too short! Please try again and speak for at least 0.5 seconds.');
             return;
           }
 
-          await processAudio(audioBlob);
+          // Check if audio is too short (< 500 bytes)
+          if (audioBlob.size < 500) {
+            alert('Recording too short! Please try again and speak louder.');
+            return;
+          }
+
+          console.log('Recording duration:', recordingDuration, 'ms');
+          console.log('Audio blob size:', audioBlob.size, 'bytes');
+          await processAudio(audioBlob, mimeType);
         };
 
         mediaRecorder.start();
+        recordingStartTimeRef.current = Date.now();
         setIsRecording(true);
       } catch (error) {
         console.error('Error accessing microphone:', error);
@@ -93,18 +119,28 @@ export default function PracticePage() {
     }
   };
 
-  const processAudio = async (audioBlob: Blob) => {
+  const processAudio = async (audioBlob: Blob, mimeType: string) => {
     try {
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
 
+        // Determine audio format from MIME type
+        let audioFormat = 'webm';
+        if (mimeType.includes('ogg')) {
+          audioFormat = 'ogg';
+        } else if (mimeType.includes('mp4') || mimeType.includes('m4a')) {
+          audioFormat = 'mp4';
+        }
+
+        console.log('Sending audio format:', audioFormat);
+
         const response = await axios.post('https://speaksharp2-0.onrender.com/api/score', {
           text: currentExercise.word,
           audio_data: base64Audio,
           item_type: 'word',
-          audio_format: 'webm'
+          audio_format: audioFormat
         });
 
         const pronunciationScore = response.data.overall_score || response.data.pronunciation_score || 0;
