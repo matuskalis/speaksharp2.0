@@ -122,15 +122,42 @@ export default function PracticePage() {
   // Convert WebM to WAV in browser using Web Audio API
   const convertToWav = async (audioBlob: Blob): Promise<Blob> => {
     const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioContext = new AudioContext({ sampleRate: 16000 });
+    const audioContext = new AudioContext(); // Use default sample rate
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-    // Get audio data as Float32Array
-    const channelData = audioBuffer.getChannelData(0); // Mono
+    // Resample to 16kHz for Azure
+    const targetSampleRate = 16000;
+    const resampled = resampleAudio(audioBuffer, targetSampleRate);
 
     // Convert to 16-bit PCM WAV
-    const wavBuffer = encodeWav(channelData, audioBuffer.sampleRate);
+    const wavBuffer = encodeWav(resampled, targetSampleRate);
+    await audioContext.close();
     return new Blob([wavBuffer], { type: 'audio/wav' });
+  };
+
+  const resampleAudio = (audioBuffer: AudioBuffer, targetSampleRate: number): Float32Array => {
+    const channelData = audioBuffer.getChannelData(0); // Mono
+    const sourceSampleRate = audioBuffer.sampleRate;
+
+    if (sourceSampleRate === targetSampleRate) {
+      return channelData;
+    }
+
+    const sampleRateRatio = sourceSampleRate / targetSampleRate;
+    const newLength = Math.round(channelData.length / sampleRateRatio);
+    const result = new Float32Array(newLength);
+
+    for (let i = 0; i < newLength; i++) {
+      const srcIndex = i * sampleRateRatio;
+      const srcIndexFloor = Math.floor(srcIndex);
+      const srcIndexCeil = Math.min(srcIndexFloor + 1, channelData.length - 1);
+      const t = srcIndex - srcIndexFloor;
+
+      // Linear interpolation
+      result[i] = channelData[srcIndexFloor] * (1 - t) + channelData[srcIndexCeil] * t;
+    }
+
+    return result;
   };
 
   const encodeWav = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
@@ -170,23 +197,37 @@ export default function PracticePage() {
 
   const processAudio = async (audioBlob: Blob, mimeType: string) => {
     try {
-      // Convert to WAV in browser (bypasses FFmpeg issues on backend)
-      console.log('Converting audio to WAV in browser...');
-      const wavBlob = await convertToWav(audioBlob);
-      console.log('WAV conversion complete:', wavBlob.size, 'bytes');
+      let finalBlob = audioBlob;
+      let audioFormat = 'webm';
+
+      // Try to convert to WAV in browser (bypasses FFmpeg issues on backend)
+      try {
+        console.log('Converting audio to WAV in browser...');
+        finalBlob = await convertToWav(audioBlob);
+        audioFormat = 'wav';
+        console.log('WAV conversion complete:', finalBlob.size, 'bytes');
+      } catch (conversionError) {
+        console.error('Browser WAV conversion failed, sending original:', conversionError);
+        // Fall back to sending original WebM
+        if (mimeType.includes('ogg')) {
+          audioFormat = 'ogg';
+        } else if (mimeType.includes('mp4') || mimeType.includes('m4a')) {
+          audioFormat = 'mp4';
+        }
+      }
 
       const reader = new FileReader();
-      reader.readAsDataURL(wavBlob);
+      reader.readAsDataURL(finalBlob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
 
-        console.log('Sending WAV audio to backend');
+        console.log(`Sending ${audioFormat} audio to backend (${finalBlob.size} bytes)`);
 
         const response = await axios.post('https://speaksharp2-0.onrender.com/api/score', {
           text: currentExercise.word,
           audio_data: base64Audio,
           item_type: 'word',
-          audio_format: 'wav'
+          audio_format: audioFormat
         });
 
         const pronunciationScore = response.data.overall_score || response.data.pronunciation_score || 0;
