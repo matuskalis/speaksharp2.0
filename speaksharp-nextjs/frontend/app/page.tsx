@@ -158,8 +158,8 @@ export default function Home() {
         const expectedIPA = currentItem.ipa || '';
         let ipaData: any = null;
 
-        // Extract audio format from blob MIME type
-        const audioFormat = audioBlob.type.split('/')[1] || 'webm'; // Extract 'webm' or 'ogg' from 'audio/webm'
+        // Extract audio format from blob MIME type (e.g., 'audio/webm;codecs=opus' -> 'webm')
+        const audioFormat = audioBlob.type.split('/')[1]?.split(';')[0] || 'webm';
 
         // Call the backend API
         const response = await axios.post('https://speaksharp2-0.onrender.com/api/score', {
