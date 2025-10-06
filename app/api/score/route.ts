@@ -26,6 +26,12 @@ export async function POST(request: NextRequest) {
     const wavBuffer = Buffer.from(audio_data, 'base64');
     console.log(`Received WAV file: ${wavBuffer.length} bytes`);
 
+    // Check WAV header to verify format
+    const wavHeader = wavBuffer.slice(0, 44);
+    console.log('WAV header (first 44 bytes):', wavHeader.toString('hex'));
+    console.log('RIFF signature:', wavBuffer.slice(0, 4).toString('ascii'));
+    console.log('WAVE signature:', wavBuffer.slice(8, 12).toString('ascii'));
+
     // Prepare pronunciation assessment parameters
     const pronunciationConfig = {
       referenceText: text,
@@ -63,7 +69,15 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Azure API error:', response.status, errorText);
+      console.error('Azure API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: errorText,
+        requestUrl: url,
+        wavFileSize: wavBuffer.length,
+        referenceText: text
+      });
 
       return NextResponse.json({
         pronunciation_score: 85,

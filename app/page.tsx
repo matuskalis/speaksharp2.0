@@ -155,6 +155,7 @@ export default function Home() {
       // Convert to regular Uint8Array to avoid ArrayBufferLike type issues
       const wavBuffer = new Uint8Array(wavData);
       const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      console.log(`FFmpeg conversion complete: ${wavBuffer.length} bytes`);
 
       // Convert to base64
       const reader = new FileReader();
