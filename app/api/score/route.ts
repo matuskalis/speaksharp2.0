@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegPath from 'ffmpeg-static';
+import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
 // Set FFmpeg path
-if (ffmpegPath) {
-  ffmpeg.setFfmpegPath(ffmpegPath);
-}
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 export async function POST(request: NextRequest) {
   let webmPath: string | null = null;

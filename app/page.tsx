@@ -193,11 +193,9 @@ export default function Home() {
     setIsProcessing(true);
 
     try {
-      // Convert to WAV format
-      const wavBlob = await convertToWav(audioBlob);
-
+      // Send WebM directly to server (FFmpeg will convert it)
       const reader = new FileReader();
-      reader.readAsDataURL(wavBlob);
+      reader.readAsDataURL(audioBlob);
 
       reader.onloadend = async () => {
         const base64Audio = reader.result?.toString().split(',')[1];
