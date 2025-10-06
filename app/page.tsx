@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRight } from 'lucide-react';
 import axios from 'axios';
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 // Scientifically-designed assessment targeting accent-diagnostic phonemes
 const DEMO_ITEMS = [
@@ -59,35 +57,9 @@ export default function Home() {
   const [feedback, setFeedback] = useState<string>('');
   const [specificFeedback, setSpecificFeedback] = useState<string>('');
   const [ipaDisplay, setIpaDisplay] = useState<{ expected: string; actual: string } | null>(null);
-  const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const ffmpegRef = useRef<FFmpeg | null>(null);
-
-  // Load FFmpeg on component mount (browser only)
-  useEffect(() => {
-    const loadFFmpeg = async () => {
-      // Only initialize FFmpeg in the browser
-      if (typeof window === 'undefined') return;
-
-      ffmpegRef.current = new FFmpeg();
-      const ffmpeg = ffmpegRef.current;
-
-      try {
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-        await ffmpeg.load({
-          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-        });
-        setFfmpegLoaded(true);
-        console.log('FFmpeg loaded successfully');
-      } catch (error) {
-        console.error('Failed to load FFmpeg:', error);
-      }
-    };
-    loadFFmpeg();
-  }, []);
 
   const startRecording = async () => {
     try {
@@ -132,35 +104,9 @@ export default function Home() {
     setIsProcessing(true);
 
     try {
-      if (!ffmpegLoaded || !ffmpegRef.current) {
-        throw new Error('FFmpeg not loaded yet. Please wait a moment and try again.');
-      }
-
-      const ffmpeg = ffmpegRef.current;
-
-      // Write the input file to FFmpeg's virtual filesystem
-      await ffmpeg.writeFile('input.webm', await fetchFile(audioBlob));
-
-      // Convert WebM to WAV with Azure-required specs: 16kHz, mono, 16-bit PCM
-      await ffmpeg.exec([
-        '-i', 'input.webm',
-        '-ar', '16000',        // 16kHz sample rate
-        '-ac', '1',            // Mono
-        '-c:a', 'pcm_s16le',   // 16-bit PCM little-endian
-        '-f', 'wav',           // Force WAV format
-        'output.wav'
-      ]);
-
-      // Read the output file
-      const wavData = await ffmpeg.readFile('output.wav') as Uint8Array;
-      // Convert to regular Uint8Array to avoid ArrayBufferLike type issues
-      const wavBuffer = new Uint8Array(wavData);
-      const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-      console.log(`FFmpeg conversion complete: ${wavBuffer.length} bytes`);
-
-      // Convert to base64
+      // Send WebM directly to server (server-side FFmpeg will convert it)
       const reader = new FileReader();
-      reader.readAsDataURL(wavBlob);
+      reader.readAsDataURL(audioBlob);
 
       reader.onloadend = async () => {
         const base64Audio = reader.result?.toString().split(',')[1];
@@ -191,19 +137,10 @@ export default function Home() {
 
         setScores([...scores, score]);
         setIsProcessing(false);
-
-        // Clean up FFmpeg files
-        try {
-          await ffmpeg.deleteFile('input.webm');
-          await ffmpeg.deleteFile('output.wav');
-        } catch (e) {
-          // Ignore cleanup errors
-        }
       };
     } catch (error) {
       console.error('Error processing audio:', error);
       setFeedback('Error processing audio. Please try again.');
-      setSpecificFeedback(error instanceof Error ? error.message : '');
       setIsProcessing(false);
     }
   };
@@ -411,18 +348,16 @@ export default function Home() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={isRecording ? stopRecording : startRecording}
-                disabled={isProcessing || ipaDisplay !== null || !ffmpegLoaded}
+                disabled={isProcessing || ipaDisplay !== null}
                 className={`relative w-36 h-36 rounded-full flex items-center justify-center transition-all shadow-2xl ${
-                  isProcessing || ipaDisplay || !ffmpegLoaded
+                  isProcessing || ipaDisplay
                     ? 'bg-slate-600 cursor-not-allowed opacity-50'
                     : isRecording
                     ? 'bg-gradient-to-br from-red-500 to-pink-500 animate-pulse shadow-red-500/50'
                     : 'bg-gradient-to-br from-emerald-500 to-blue-500 hover:shadow-emerald-500/50'
                 }`}
               >
-                {!ffmpegLoaded ? (
-                  <div className="text-white font-semibold text-sm px-4">Loading...</div>
-                ) : isProcessing ? (
+                {isProcessing ? (
                   <div className="text-white font-semibold">Processing...</div>
                 ) : isRecording ? (
                   <MicOff size={48} className="text-white" />
@@ -432,9 +367,7 @@ export default function Home() {
               </motion.button>
 
               <p className="mt-6 text-gray-400 h-6 text-center">
-                {!ffmpegLoaded ?
-                  'Loading audio processor...' :
-                  ipaDisplay ?
+                {ipaDisplay ?
                   'Review your results above' :
                   isProcessing ? 'Analyzing pronunciation with AI...' :
                   isRecording ? 'Recording... Click to stop' :
