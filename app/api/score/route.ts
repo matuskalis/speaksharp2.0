@@ -85,9 +85,10 @@ export async function POST(request: NextRequest) {
         fluency_score: 80,
         completeness_score: 100,
         feedback: 'Good pronunciation!',
-        specific_feedback: `Azure error (${response.status}) - showing demo results`,
+        specific_feedback: `Azure error (${response.status}): ${errorText.substring(0, 200)}`,
         ipa_transcription: text.split('').join(' '),
         recognized_text: text,
+        azure_error_full: errorText, // Full error for debugging
       });
     }
 
