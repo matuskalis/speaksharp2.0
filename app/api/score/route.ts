@@ -63,12 +63,36 @@ export async function POST(request: NextRequest) {
     });
     const url = `${endpoint}?${params.toString()}`;
 
-    console.log('Calling Azure Speech API with properly formatted WAV...');
+    console.log('Calling Azure Speech API...');
+    console.log('Pronunciation config:', pronunciationConfig);
 
     // Call Azure Speech API with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout
 
+    // First try WITHOUT pronunciation assessment to test basic audio acceptance
+    const testResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Ocp-Apim-Subscription-Key': azureKey,
+        'Content-Type': 'audio/wav',
+        'Accept': 'application/json',
+      },
+      body: wavBuffer,
+      signal: controller.signal,
+    }).catch(err => {
+      console.error('Test request failed:', err);
+      return null;
+    });
+
+    if (testResponse && testResponse.ok) {
+      console.log('Basic audio recognition works! Now trying with pronunciation assessment...');
+    } else if (testResponse) {
+      const testError = await testResponse.text();
+      console.error('Basic audio recognition failed:', testResponse.status, testError);
+    }
+
+    // Now try WITH pronunciation assessment
     const response = await fetch(url, {
       method: 'POST',
       headers: {
