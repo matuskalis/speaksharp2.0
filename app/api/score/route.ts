@@ -32,6 +32,20 @@ export async function POST(request: NextRequest) {
     console.log('RIFF signature:', wavBuffer.slice(0, 4).toString('ascii'));
     console.log('WAVE signature:', wavBuffer.slice(8, 12).toString('ascii'));
 
+    // Parse WAV header details
+    const audioFormat = wavBuffer.readUInt16LE(20);
+    const numChannels = wavBuffer.readUInt16LE(22);
+    const sampleRate = wavBuffer.readUInt32LE(24);
+    const bitsPerSample = wavBuffer.readUInt16LE(34);
+
+    console.log('WAV format details:', {
+      audioFormat: audioFormat === 1 ? 'PCM' : 'Unknown',
+      numChannels,
+      sampleRate,
+      bitsPerSample,
+      fileSize: wavBuffer.length
+    });
+
     // Prepare pronunciation assessment parameters
     const pronunciationConfig = {
       referenceText: text,
@@ -79,16 +93,26 @@ export async function POST(request: NextRequest) {
         referenceText: text
       });
 
+      // Include WAV format info in error response for debugging
+      const debugInfo = {
+        audioFormat: wavBuffer.readUInt16LE(20),
+        numChannels: wavBuffer.readUInt16LE(22),
+        sampleRate: wavBuffer.readUInt32LE(24),
+        bitsPerSample: wavBuffer.readUInt16LE(34),
+        fileSize: wavBuffer.length
+      };
+
       return NextResponse.json({
         pronunciation_score: 85,
         accuracy_score: 85,
         fluency_score: 80,
         completeness_score: 100,
         feedback: 'Good pronunciation!',
-        specific_feedback: `Azure error (${response.status}): ${errorText.substring(0, 200)}`,
+        specific_feedback: `Azure error (${response.status}): Format=${debugInfo.sampleRate}Hz/${debugInfo.bitsPerSample}bit/${debugInfo.numChannels}ch`,
         ipa_transcription: text.split('').join(' '),
         recognized_text: text,
-        azure_error_full: errorText, // Full error for debugging
+        azure_error_full: errorText,
+        wav_format: debugInfo
       });
     }
 
