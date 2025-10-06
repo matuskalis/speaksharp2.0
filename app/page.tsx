@@ -146,8 +146,8 @@ export default function Home() {
       ]);
 
       // Read the output file
-      const wavData = await ffmpeg.readFile('output.wav');
-      const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
+      const wavData = await ffmpeg.readFile('output.wav') as Uint8Array;
+      const wavBlob = new Blob([wavData], { type: 'audio/wav' });
 
       // Convert to base64
       const reader = new FileReader();
