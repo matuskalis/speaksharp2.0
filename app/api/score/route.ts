@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ffmpeg from 'fluent-ffmpeg';
-import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
-import { writeFileSync, unlinkSync, readFileSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
-
-// Set FFmpeg path
-ffmpeg.setFfmpegPath(ffmpegPath);
 
 export async function POST(request: NextRequest) {
-  let webmPath: string | null = null;
-  let wavPath: string | null = null;
-
   try {
     const body = await request.json();
     const { text, audio_data, item_type } = body;
@@ -33,36 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert base64 to buffer and save as WebM
-    const audioBuffer = Buffer.from(audio_data, 'base64');
-    const timestamp = Date.now();
-    webmPath = join(tmpdir(), `audio-${timestamp}.webm`);
-    wavPath = join(tmpdir(), `audio-${timestamp}.wav`);
-
-    writeFileSync(webmPath, audioBuffer);
-    console.log('WebM file saved, converting to WAV...');
-
-    // Convert WebM to WAV using FFmpeg with Azure-required specs
-    await new Promise<void>((resolve, reject) => {
-      ffmpeg(webmPath!)
-        .audioFrequency(16000) // 16kHz sample rate
-        .audioChannels(1) // Mono
-        .audioCodec('pcm_s16le') // 16-bit PCM little-endian
-        .format('wav')
-        .on('end', () => {
-          console.log('FFmpeg conversion complete');
-          resolve();
-        })
-        .on('error', (err) => {
-          console.error('FFmpeg error:', err);
-          reject(err);
-        })
-        .save(wavPath!);
-    });
-
-    // Read the converted WAV file
-    const wavBuffer = readFileSync(wavPath);
-    console.log(`WAV file created: ${wavBuffer.length} bytes`);
+    // Convert base64 to buffer (client already converted to WAV with ffmpeg.wasm)
+    const wavBuffer = Buffer.from(audio_data, 'base64');
+    console.log(`Received WAV file: ${wavBuffer.length} bytes`);
 
     // Prepare pronunciation assessment parameters
     const pronunciationConfig = {
@@ -98,14 +60,6 @@ export async function POST(request: NextRequest) {
       body: wavBuffer,
       signal: controller.signal,
     }).finally(() => clearTimeout(timeoutId));
-
-    // Clean up temp files
-    try {
-      if (webmPath) unlinkSync(webmPath);
-      if (wavPath) unlinkSync(wavPath);
-    } catch (e) {
-      console.error('Cleanup error:', e);
-    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -181,14 +135,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error processing pronunciation:', error);
-
-    // Clean up temp files on error
-    try {
-      if (webmPath) unlinkSync(webmPath);
-      if (wavPath) unlinkSync(wavPath);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
 
     return NextResponse.json({
       pronunciation_score: 75,

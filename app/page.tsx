@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRight } from 'lucide-react';
 import axios from 'axios';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 // Scientifically-designed assessment targeting accent-diagnostic phonemes
 const DEMO_ITEMS = [
@@ -57,9 +59,30 @@ export default function Home() {
   const [feedback, setFeedback] = useState<string>('');
   const [specificFeedback, setSpecificFeedback] = useState<string>('');
   const [ipaDisplay, setIpaDisplay] = useState<{ expected: string; actual: string } | null>(null);
+  const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const ffmpegRef = useRef(new FFmpeg());
+
+  // Load FFmpeg on component mount
+  useEffect(() => {
+    const loadFFmpeg = async () => {
+      const ffmpeg = ffmpegRef.current;
+      try {
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+        await ffmpeg.load({
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+        setFfmpegLoaded(true);
+        console.log('FFmpeg loaded successfully');
+      } catch (error) {
+        console.error('Failed to load FFmpeg:', error);
+      }
+    };
+    loadFFmpeg();
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -100,102 +123,35 @@ export default function Home() {
     }
   };
 
-  // Convert audio to WAV format using Web Audio API
-  const convertToWav = async (audioBlob: Blob): Promise<Blob> => {
-    const audioContext = new AudioContext({ sampleRate: 16000 });
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    // Resample to mono if needed
-    const monoBuffer = audioBuffer.numberOfChannels > 1
-      ? audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate)
-      : audioBuffer;
-
-    if (audioBuffer.numberOfChannels > 1) {
-      const leftChannel = audioBuffer.getChannelData(0);
-      const rightChannel = audioBuffer.getChannelData(1);
-      const monoData = monoBuffer.getChannelData(0);
-      for (let i = 0; i < audioBuffer.length; i++) {
-        monoData[i] = (leftChannel[i] + rightChannel[i]) / 2;
-      }
-    }
-
-    // Convert to WAV
-    const wavBuffer = audioBufferToWav(audioBuffer.numberOfChannels > 1 ? monoBuffer : audioBuffer);
-    return new Blob([wavBuffer], { type: 'audio/wav' });
-  };
-
-  // WAV encoder
-  const audioBufferToWav = (buffer: AudioBuffer): ArrayBuffer => {
-    const length = buffer.length * buffer.numberOfChannels * 2 + 44;
-    const arrayBuffer = new ArrayBuffer(length);
-    const view = new DataView(arrayBuffer);
-    const channels: Float32Array[] = [];
-    let offset = 0;
-    let pos = 0;
-
-    // Write WAV header
-    const setUint16 = (data: number) => {
-      view.setUint16(pos, data, true);
-      pos += 2;
-    };
-    const setUint32 = (data: number) => {
-      view.setUint32(pos, data, true);
-      pos += 4;
-    };
-
-    // RIFF identifier
-    setUint32(0x46464952);
-    // file length
-    setUint32(length - 8);
-    // RIFF type
-    setUint32(0x45564157);
-    // format chunk identifier
-    setUint32(0x20746d66);
-    // format chunk length
-    setUint32(16);
-    // sample format (raw)
-    setUint16(1);
-    // channel count
-    setUint16(buffer.numberOfChannels);
-    // sample rate
-    setUint32(buffer.sampleRate);
-    // byte rate (sample rate * block align)
-    setUint32(buffer.sampleRate * 2 * buffer.numberOfChannels);
-    // block align (channel count * bytes per sample)
-    setUint16(buffer.numberOfChannels * 2);
-    // bits per sample
-    setUint16(16);
-    // data chunk identifier
-    setUint32(0x61746164);
-    // data chunk length
-    setUint32(length - pos - 4);
-
-    // Write interleaved data
-    for (let i = 0; i < buffer.numberOfChannels; i++) {
-      channels.push(buffer.getChannelData(i));
-    }
-
-    while (pos < length) {
-      for (let i = 0; i < buffer.numberOfChannels; i++) {
-        let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-        sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-        view.setInt16(pos, sample, true);
-        pos += 2;
-      }
-      offset++;
-    }
-
-    return arrayBuffer;
-  };
-
   const processAudio = async (audioBlob: Blob) => {
     setIsProcessing(true);
 
     try {
-      // Send WebM directly to server (FFmpeg will convert it)
+      if (!ffmpegLoaded) {
+        throw new Error('FFmpeg not loaded yet. Please wait a moment and try again.');
+      }
+
+      const ffmpeg = ffmpegRef.current;
+
+      // Write the input file to FFmpeg's virtual filesystem
+      await ffmpeg.writeFile('input.webm', await fetchFile(audioBlob));
+
+      // Convert WebM to WAV with Azure-required specs: 16kHz, mono, 16-bit PCM
+      await ffmpeg.exec([
+        '-i', 'input.webm',
+        '-ar', '16000',        // 16kHz sample rate
+        '-ac', '1',            // Mono
+        '-c:a', 'pcm_s16le',   // 16-bit PCM little-endian
+        'output.wav'
+      ]);
+
+      // Read the output file
+      const wavData = await ffmpeg.readFile('output.wav');
+      const wavBlob = new Blob([wavData], { type: 'audio/wav' });
+
+      // Convert to base64
       const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
+      reader.readAsDataURL(wavBlob);
 
       reader.onloadend = async () => {
         const base64Audio = reader.result?.toString().split(',')[1];
@@ -226,10 +182,19 @@ export default function Home() {
 
         setScores([...scores, score]);
         setIsProcessing(false);
+
+        // Clean up FFmpeg files
+        try {
+          await ffmpeg.deleteFile('input.webm');
+          await ffmpeg.deleteFile('output.wav');
+        } catch (e) {
+          // Ignore cleanup errors
+        }
       };
     } catch (error) {
       console.error('Error processing audio:', error);
       setFeedback('Error processing audio. Please try again.');
+      setSpecificFeedback(error instanceof Error ? error.message : '');
       setIsProcessing(false);
     }
   };
@@ -437,16 +402,18 @@ export default function Home() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={isRecording ? stopRecording : startRecording}
-                disabled={isProcessing || ipaDisplay !== null}
+                disabled={isProcessing || ipaDisplay !== null || !ffmpegLoaded}
                 className={`relative w-36 h-36 rounded-full flex items-center justify-center transition-all shadow-2xl ${
-                  isProcessing || ipaDisplay
+                  isProcessing || ipaDisplay || !ffmpegLoaded
                     ? 'bg-slate-600 cursor-not-allowed opacity-50'
                     : isRecording
                     ? 'bg-gradient-to-br from-red-500 to-pink-500 animate-pulse shadow-red-500/50'
                     : 'bg-gradient-to-br from-emerald-500 to-blue-500 hover:shadow-emerald-500/50'
                 }`}
               >
-                {isProcessing ? (
+                {!ffmpegLoaded ? (
+                  <div className="text-white font-semibold text-sm px-4">Loading...</div>
+                ) : isProcessing ? (
                   <div className="text-white font-semibold">Processing...</div>
                 ) : isRecording ? (
                   <MicOff size={48} className="text-white" />
@@ -456,7 +423,9 @@ export default function Home() {
               </motion.button>
 
               <p className="mt-6 text-gray-400 h-6 text-center">
-                {ipaDisplay ?
+                {!ffmpegLoaded ?
+                  'Loading audio processor...' :
+                  ipaDisplay ?
                   'Review your results above' :
                   isProcessing ? 'Analyzing pronunciation with AI...' :
                   isRecording ? 'Recording... Click to stop' :
