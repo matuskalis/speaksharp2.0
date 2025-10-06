@@ -63,12 +63,17 @@ export default function Home() {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const ffmpegRef = useRef(new FFmpeg());
+  const ffmpegRef = useRef<FFmpeg | null>(null);
 
-  // Load FFmpeg on component mount
+  // Load FFmpeg on component mount (browser only)
   useEffect(() => {
     const loadFFmpeg = async () => {
+      // Only initialize FFmpeg in the browser
+      if (typeof window === 'undefined') return;
+
+      ffmpegRef.current = new FFmpeg();
       const ffmpeg = ffmpegRef.current;
+
       try {
         const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
         await ffmpeg.load({
@@ -127,7 +132,7 @@ export default function Home() {
     setIsProcessing(true);
 
     try {
-      if (!ffmpegLoaded) {
+      if (!ffmpegLoaded || !ffmpegRef.current) {
         throw new Error('FFmpeg not loaded yet. Please wait a moment and try again.');
       }
 
