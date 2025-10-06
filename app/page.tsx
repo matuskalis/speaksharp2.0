@@ -147,6 +147,7 @@ export default function Home() {
         '-ar', '16000',        // 16kHz sample rate
         '-ac', '1',            // Mono
         '-c:a', 'pcm_s16le',   // 16-bit PCM little-endian
+        '-f', 'wav',           // Force WAV format
         'output.wav'
       ]);
 
