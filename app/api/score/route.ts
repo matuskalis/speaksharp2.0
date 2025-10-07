@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ffmpeg from 'fluent-ffmpeg';
-import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-// Set FFmpeg path
-ffmpeg.setFfmpegPath(ffmpegPath);
+// FFmpeg will use system-installed ffmpeg (from nixpacks.toml)
 
 export async function POST(request: NextRequest) {
   let webmPath: string | null = null;
