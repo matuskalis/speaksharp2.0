@@ -4,7 +4,8 @@ import { writeFileSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-// FFmpeg will use system-installed ffmpeg (from nixpacks.toml)
+// Set FFmpeg path to system binary (installed via nixpacks.toml)
+ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
 
 export async function POST(request: NextRequest) {
   let webmPath: string | null = null;
