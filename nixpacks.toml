@@ -2,7 +2,10 @@
 aptPkgs = ["ffmpeg"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = [
+  "apt-get update && apt-get install -y ffmpeg || true",
+  "npm install"
+]
 
 [phases.build]
 cmds = ["npm run build"]
