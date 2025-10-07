@@ -113,6 +113,11 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Azure API error:', response.status, errorText);
+      console.error('WAV file size:', wavBuffer.length, 'bytes');
+      console.error('Request headers:', {
+        'Content-Type': 'audio/wav',
+        'Pronunciation-Assessment': JSON.stringify(pronunciationConfig),
+      });
 
       return NextResponse.json({
         pronunciation_score: 85,
@@ -120,7 +125,7 @@ export async function POST(request: NextRequest) {
         fluency_score: 80,
         completeness_score: 100,
         feedback: 'Good pronunciation!',
-        specific_feedback: `Azure error (${response.status}) - showing demo results`,
+        specific_feedback: `Azure error (${response.status}): ${errorText.substring(0, 100)}`,
         ipa_transcription: text.split('').join(' '),
         recognized_text: text,
       });
