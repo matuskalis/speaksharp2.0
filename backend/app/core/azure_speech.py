@@ -56,13 +56,16 @@ class AzureSpeechService:
             if audio_format != "wav":
                 logger.info(f"Converting {audio_format} to WAV for Azure processing")
                 wav_data = self._convert_to_wav(audio_data, audio_format)
-                if not wav_data:
+                if not wav_data or len(wav_data) == 0:
+                    logger.error(f"Audio conversion produced empty data. Input was {len(audio_data)} bytes of {audio_format}")
                     return {
                         "success": False,
-                        "message": f"Failed to convert {audio_format} to WAV",
+                        "message": f"Failed to convert {audio_format} to WAV. Audio conversion produced no data.",
+                        "detail": f"Input: {len(audio_data)} bytes, Output: {len(wav_data) if wav_data else 0} bytes",
                         "recognized_text": "",
                         "overall_score": 0.0
                     }
+                logger.info(f"Conversion successful: {len(wav_data)} bytes of WAV data")
 
             # Configure audio format (16kHz, 16-bit, mono PCM WAV)
             audio_format_obj = speechsdk.audio.AudioStreamFormat(
@@ -115,9 +118,19 @@ class AzureSpeechService:
                 cancellation = speechsdk.CancellationDetails(result)
                 logger.error(f"Speech recognition CANCELED: {cancellation.reason}")
                 logger.error(f"Error details: {cancellation.error_details}")
+                logger.error(f"Error code: {cancellation.error_code if hasattr(cancellation, 'error_code') else 'N/A'}")
+
+                # Provide more specific error messages
+                error_msg = str(cancellation.error_details)
+                if "BadRequest" in error_msg or "400" in error_msg:
+                    error_msg = f"Audio format error: {error_msg}. Try recording in a different format."
+                elif "Unauthorized" in error_msg or "401" in error_msg:
+                    error_msg = "Azure authentication failed. Check API keys."
+
                 return {
                     "success": False,
-                    "message": f"Speech recognition canceled: {cancellation.error_details}",
+                    "message": f"Azure error ({cancellation.reason}): {error_msg}",
+                    "detail": str(cancellation.error_details),
                     "recognized_text": "",
                     "overall_score": 0.0
                 }
