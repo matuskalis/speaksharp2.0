@@ -71,9 +71,7 @@ export async function POST(request: NextRequest) {
     const pronunciationConfig = {
       referenceText: text,
       gradingSystem: 'HundredMark',
-      granularity: 'Phoneme',
-      dimension: 'Comprehensive',
-      enableMiscue: false
+      granularity: 'Phoneme'
     };
 
     // Azure Speech REST API endpoint
