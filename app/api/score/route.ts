@@ -3,9 +3,18 @@ import ffmpeg from 'fluent-ffmpeg';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { execSync } from 'child_process';
 
-// Set FFmpeg path to system binary (installed via nixpacks.toml)
-ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
+// Find FFmpeg path dynamically
+try {
+  const ffmpegPath = execSync('which ffmpeg').toString().trim();
+  if (ffmpegPath) {
+    ffmpeg.setFfmpegPath(ffmpegPath);
+    console.log('FFmpeg found at:', ffmpegPath);
+  }
+} catch (e) {
+  console.log('FFmpeg not found in PATH');
+}
 
 export async function POST(request: NextRequest) {
   let webmPath: string | null = null;
