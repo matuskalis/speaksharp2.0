@@ -3,17 +3,12 @@ import ffmpeg from 'fluent-ffmpeg';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { execSync } from 'child_process';
 
-// Find FFmpeg path dynamically
-try {
-  const ffmpegPath = execSync('which ffmpeg').toString().trim();
-  if (ffmpegPath) {
-    ffmpeg.setFfmpegPath(ffmpegPath);
-    console.log('FFmpeg found at:', ffmpegPath);
-  }
-} catch (e) {
-  console.log('FFmpeg not found in PATH');
+// Set FFmpeg to system path (installed via Dockerfile)
+// In Debian-based Docker images, apt-get installs ffmpeg to /usr/bin/ffmpeg
+if (process.env.NODE_ENV === 'production') {
+  ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
+  ffmpeg.setFfprobePath('/usr/bin/ffprobe');
 }
 
 export async function POST(request: NextRequest) {
