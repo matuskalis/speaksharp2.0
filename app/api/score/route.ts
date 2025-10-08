@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     });
     const url = `${endpoint}?${params.toString()}`;
 
-    console.log('Calling Azure Speech API with pronunciation assessment...');
+    console.log('Calling Azure Speech API with pronunciation assessment (fixed)...');
 
     // Call Azure Speech API with timeout
     const controller = new AbortController();
