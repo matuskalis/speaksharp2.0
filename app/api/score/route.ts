@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': azureKey,
-        'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
+        'Content-Type': 'audio/wav; codec=audio/pcm; samplerate=16000',
         'Accept': 'application/json',
         'Pronunciation-Assessment': JSON.stringify(pronunciationConfig),
       },
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       console.error('Azure API error:', response.status, errorText);
       console.error('WAV file size:', wavBuffer.length, 'bytes');
       console.error('Request headers:', {
-        'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
+        'Content-Type': 'audio/wav; codec=audio/pcm; samplerate=16000',
         'Pronunciation-Assessment': JSON.stringify(pronunciationConfig),
       });
 
