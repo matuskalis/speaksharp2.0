@@ -115,12 +115,17 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Azure API error:', response.status, errorText);
+      console.error('===== AZURE API ERROR DETAILS =====');
+      console.error('Status:', response.status, response.statusText);
+      console.error('Error Response Body:', errorText);
+      console.error('Response Headers:', Object.fromEntries(response.headers.entries()));
+      console.error('Request URL:', url);
       console.error('WAV file size:', wavBuffer.length, 'bytes');
       console.error('Request headers:', {
         'Content-Type': 'audio/wav',
         'Pronunciation-Assessment': JSON.stringify(pronunciationConfig),
       });
+      console.error('===================================');
 
       return NextResponse.json({
         pronunciation_score: 85,
