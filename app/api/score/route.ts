@@ -68,10 +68,11 @@ export async function POST(request: NextRequest) {
     console.log(`WAV file created: ${wavBuffer.length} bytes`);
 
     // Prepare pronunciation assessment parameters
+    // Azure REST API requires PascalCase parameter names
     const pronunciationConfig = {
-      referenceText: text,
-      gradingSystem: 'HundredMark',
-      granularity: 'Phoneme'
+      ReferenceText: text,
+      GradingSystem: 'HundredMark',
+      Granularity: 'Phoneme'
     };
 
     // Azure Speech REST API endpoint
