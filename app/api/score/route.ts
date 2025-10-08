@@ -76,8 +76,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Azure Speech REST API endpoint
-    // Using 'interactive' mode for short pronunciation exercises instead of 'conversation'
-    const endpoint = `https://${azureRegion}.stt.speech.microsoft.com/speech/recognition/interactive/cognitiveservices/v1`;
+    const endpoint = `https://${azureRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1`;
     const params = new URLSearchParams({
       'language': 'en-US',
       'format': 'detailed',
