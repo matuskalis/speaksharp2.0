@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
     const endpoint = `https://${azureRegion}.stt.speech.microsoft.com/speech/recognition/interactive/cognitiveservices/v1`;
     const params = new URLSearchParams({
       'language': 'en-US',
-      'format': 'detailed'
+      'format': 'detailed',
+      'NBest': '1'  // Required for pronunciation assessment
     });
     const url = `${endpoint}?${params.toString()}`;
 
