@@ -93,6 +93,25 @@ export async function POST(request: NextRequest) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+    // Test without pronunciation assessment first to see if basic recognition works
+    console.log('Testing basic speech recognition first...');
+    const testResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Ocp-Apim-Subscription-Key': azureKey,
+        'Content-Type': 'audio/wav',
+        'Accept': 'application/json',
+      },
+      body: wavBuffer,
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    console.log('Basic recognition status:', testResponse.status);
+    if (testResponse.ok) {
+      console.log('Basic recognition works! Now trying with pronunciation assessment...');
+    }
+
+    // Now try with pronunciation assessment
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -103,7 +122,7 @@ export async function POST(request: NextRequest) {
       },
       body: wavBuffer,
       signal: controller.signal,
-    }).finally(() => clearTimeout(timeoutId));
+    });
 
     // Clean up temp files
     try {
