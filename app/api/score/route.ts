@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ffmpeg from 'fluent-ffmpeg';
-import { writeFileSync, unlinkSync, readFileSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
 
-// Set FFmpeg to system path (installed via Dockerfile)
-// In Debian-based Docker images, apt-get installs ffmpeg to /usr/bin/ffmpeg
-if (process.env.NODE_ENV === 'production') {
-  ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
-  ffmpeg.setFfprobePath('/usr/bin/ffprobe');
-}
+const BACKEND_URL = process.env.BACKEND_URL || 'https://speaksharp20-production-1a8d.up.railway.app';
 
 export async function POST(request: NextRequest) {
-  let webmPath: string | null = null;
-  let wavPath: string | null = null;
-
   try {
     const body = await request.json();
-    const { text, audio_data, item_type } = body;
+    const { text, audio_data } = body;
 
     if (!text || !audio_data) {
       return NextResponse.json(
@@ -26,192 +14,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const azureKey = process.env.AZURE_SPEECH_KEY;
-    const azureRegion = process.env.AZURE_SPEECH_REGION || 'eastus';
+    console.log('Proxying to Python backend:', BACKEND_URL);
 
-    if (!azureKey) {
-      return NextResponse.json(
-        { error: 'Azure Speech key not configured' },
-        { status: 500 }
-      );
-    }
-
-    // Convert base64 to buffer and save as WebM
-    const audioBuffer = Buffer.from(audio_data, 'base64');
-    const timestamp = Date.now();
-    webmPath = join(tmpdir(), `audio-${timestamp}.webm`);
-    wavPath = join(tmpdir(), `audio-${timestamp}.wav`);
-
-    writeFileSync(webmPath, audioBuffer);
-    console.log('WebM file saved, converting to WAV...');
-
-    // Convert WebM to WAV using FFmpeg with Azure-required specs
-    await new Promise<void>((resolve, reject) => {
-      ffmpeg(webmPath!)
-        .audioFrequency(16000) // 16kHz sample rate
-        .audioChannels(1) // Mono
-        .audioCodec('pcm_s16le') // 16-bit PCM little-endian
-        .format('wav')
-        .on('end', () => {
-          console.log('FFmpeg conversion complete');
-          resolve();
-        })
-        .on('error', (err) => {
-          console.error('FFmpeg error:', err);
-          reject(err);
-        })
-        .save(wavPath!);
-    });
-
-    // Read the converted WAV file
-    const wavBuffer = readFileSync(wavPath);
-    console.log(`WAV file created: ${wavBuffer.length} bytes`);
-
-    // Prepare pronunciation assessment parameters
-    // Azure REST API requires PascalCase parameter names
-    const pronunciationConfig = {
-      ReferenceText: text,
-      GradingSystem: 'HundredMark',
-      Granularity: 'Phoneme'
-    };
-
-    // Azure Speech REST API endpoint
-    const endpoint = `https://${azureRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1`;
-    const params = new URLSearchParams({
-      'language': 'en-US',
-      'format': 'detailed',
-      'NBest': '1'  // Required for pronunciation assessment
-    });
-    const url = `${endpoint}?${params.toString()}`;
-
-    console.log('Calling Azure Speech API with pronunciation assessment...');
-    console.log('API URL:', url);
-    console.log('Pronunciation Config:', JSON.stringify(pronunciationConfig));
-    console.log('WAV buffer size:', wavBuffer.length, 'bytes');
-
-    // Call Azure Speech API with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    // Test without pronunciation assessment first to see if basic recognition works
-    console.log('Testing basic speech recognition first...');
-    const testResponse = await fetch(url, {
+    // Call Python backend
+    const response = await fetch(`${BACKEND_URL}/api/pronunciation/assess`, {
       method: 'POST',
       headers: {
-        'Ocp-Apim-Subscription-Key': azureKey,
-        'Content-Type': 'audio/wav',
-        'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
-      body: wavBuffer,
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeoutId));
-
-    console.log('Basic recognition status:', testResponse.status);
-    if (testResponse.ok) {
-      console.log('Basic recognition works! Now trying with pronunciation assessment...');
-    }
-
-    // Now try with pronunciation assessment
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Ocp-Apim-Subscription-Key': azureKey,
-        'Content-Type': 'audio/wav',
-        'Accept': 'application/json',
-        'Pronunciation-Assessment': JSON.stringify(pronunciationConfig),
-      },
-      body: wavBuffer,
-      signal: controller.signal,
+      body: JSON.stringify({
+        reference_text: text,
+        audio_data: audio_data,
+        audio_format: 'webm'
+      }),
     });
 
-    // Clean up temp files
-    try {
-      if (webmPath) unlinkSync(webmPath);
-      if (wavPath) unlinkSync(wavPath);
-    } catch (e) {
-      console.error('Cleanup error:', e);
-    }
+    const data = await response.json();
+    console.log('Backend response:', data);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('===== AZURE API ERROR DETAILS =====');
-      console.error('Status:', response.status, response.statusText);
-      console.error('Error Response Body:', errorText);
-      console.error('Response Headers:', Object.fromEntries(response.headers.entries()));
-      console.error('Request URL:', url);
-      console.error('WAV file size:', wavBuffer.length, 'bytes');
-      console.error('Request headers:', {
-        'Content-Type': 'audio/wav',
-        'Pronunciation-Assessment': JSON.stringify(pronunciationConfig),
-      });
-      console.error('===================================');
-
+      console.error('Backend error:', data);
       return NextResponse.json({
-        pronunciation_score: 85,
-        accuracy_score: 85,
-        fluency_score: 80,
+        pronunciation_score: 75,
+        accuracy_score: 75,
+        fluency_score: 70,
         completeness_score: 100,
-        feedback: 'Good pronunciation!',
-        specific_feedback: `Azure error (${response.status}): ${errorText.substring(0, 100)}`,
+        feedback: 'Error processing',
+        specific_feedback: data.message || 'Backend error',
         ipa_transcription: text.split('').join(' '),
         recognized_text: text,
       });
     }
 
-    const data = await response.json();
-    console.log('Azure response received successfully!');
-
-    // Extract pronunciation assessment data
-    const pronunciationAssessment = data.NBest?.[0]?.PronunciationAssessment;
-    const words = data.NBest?.[0]?.Words || [];
-
-    const pronunciationScore = Math.round(pronunciationAssessment?.PronunciationScore || 75);
-    const accuracyScore = Math.round(pronunciationAssessment?.AccuracyScore || 75);
-    const fluencyScore = Math.round(pronunciationAssessment?.FluencyScore || 75);
-    const completenessScore = Math.round(pronunciationAssessment?.CompletenessScore || 100);
-
-    // Extract phoneme-level data
-    let phonemeDetails: string[] = [];
-    let ipaTranscription = '';
-
-    words.forEach((word: any) => {
-      if (word.Phonemes) {
-        word.Phonemes.forEach((phoneme: any) => {
-          ipaTranscription += phoneme.Phoneme + ' ';
-          if (phoneme.AccuracyScore < 60) {
-            phonemeDetails.push(`${phoneme.Phoneme} (${phoneme.AccuracyScore}%)`);
-          }
-        });
-      }
-    });
-
-    // Generate feedback
-    let feedback = '';
-    if (pronunciationScore >= 80) {
-      feedback = 'Excellent pronunciation!';
-    } else if (pronunciationScore >= 60) {
-      feedback = 'Good job! Minor improvements needed.';
-    } else {
-      feedback = 'Keep practicing! Focus on clarity.';
-    }
-
-    let specificFeedback = '';
-    if (phonemeDetails.length > 0) {
-      specificFeedback = `Focus on improving: ${phonemeDetails.slice(0, 3).join(', ')}`;
-    } else {
-      specificFeedback = 'All phonemes pronounced clearly!';
-    }
-
+    // Map backend response to frontend format
     return NextResponse.json({
-      pronunciation_score: pronunciationScore,
-      accuracy_score: accuracyScore,
-      fluency_score: fluencyScore,
-      completeness_score: completenessScore,
-      feedback,
-      specific_feedback: specificFeedback,
-      ipa_transcription: ipaTranscription.trim() || text.split('').join(' '),
-      recognized_text: data.NBest?.[0]?.Display || text,
-      phoneme_details: phonemeDetails,
+      pronunciation_score: Math.round(data.overall_score || data.pronunciation_score || 75),
+      accuracy_score: Math.round(data.accuracy_score || 75),
+      fluency_score: Math.round(data.fluency_score || 75),
+      completeness_score: Math.round(data.completeness_score || 100),
+      feedback: data.message || 'Assessment complete',
+      specific_feedback: data.message || 'Good work!',
+      ipa_transcription: text.split('').join(' '),
+      recognized_text: data.recognized_text || text,
     });
 
   } catch (error: any) {
