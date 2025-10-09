@@ -5,12 +5,15 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     build-essential \
     libssl-dev \
+    libssl3 \
     ca-certificates \
     libasound2 \
     libasound2-dev \
     libpulse0 \
     libpulse-dev \
     libc6 \
+    libstdc++6 \
+    libgcc1 \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
