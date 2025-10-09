@@ -61,14 +61,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error processing pronunciation:', error);
 
-    // Clean up temp files on error
-    try {
-      if (webmPath) unlinkSync(webmPath);
-      if (wavPath) unlinkSync(wavPath);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-
     return NextResponse.json({
       pronunciation_score: 75,
       accuracy_score: 75,
