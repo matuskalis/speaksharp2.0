@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
     console.log('Proxying to Python backend:', BACKEND_URL);
 
     // Call Python backend
-    const response = await fetch(`${BACKEND_URL}/api/pronunciation/assess`, {
+    const response = await fetch(`${BACKEND_URL}/api/score`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        reference_text: text,
+        text: text,
         audio_data: audio_data,
         audio_format: 'webm'
       }),
