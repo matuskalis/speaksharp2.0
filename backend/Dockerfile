@@ -7,6 +7,10 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     ca-certificates \
     libasound2 \
+    libasound2-dev \
+    libpulse0 \
+    libpulse-dev \
+    libc6 \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
