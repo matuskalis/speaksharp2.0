@@ -1,21 +1,22 @@
-FROM python:3.11
+FROM ubuntu:22.04
 
-# Install system dependencies including FFmpeg and Azure Speech SDK requirements
+# Install Python 3.11 and system dependencies
 RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
     ffmpeg \
     build-essential \
     libssl-dev \
-    libssl3 \
     ca-certificates \
     libasound2 \
-    libasound2-dev \
-    libpulse0 \
-    libpulse-dev \
-    libc6 \
-    libstdc++6 \
-    libgcc1 \
     wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Set python3.11 as default python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
 WORKDIR /app
 
