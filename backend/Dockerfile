@@ -2,13 +2,10 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python 3.11 and system dependencies
+# Install Python 3.8 and system dependencies (Ubuntu 20.04 default Python)
 RUN apt-get update && apt-get install -y \
-    software-properties-common \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-dev \
+    python3 \
+    python3-dev \
     python3-pip \
     ffmpeg \
     build-essential \
@@ -21,9 +18,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set python3.11 as default python
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+# Set python3 as default python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 WORKDIR /app
 
