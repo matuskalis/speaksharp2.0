@@ -1,15 +1,22 @@
-FROM ubuntu:22.04
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Python 3.11 and system dependencies
 RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y \
     python3.11 \
     python3.11-dev \
     python3-pip \
     ffmpeg \
     build-essential \
     libssl-dev \
+    libssl1.1 \
     ca-certificates \
     libasound2 \
+    libasound2-dev \
     wget \
     curl \
     && rm -rf /var/lib/apt/lists/*
