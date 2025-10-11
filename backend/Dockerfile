@@ -2,18 +2,21 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python 3.8 (default) and system dependencies with OpenSSL 1.1
+# Install Python 3.8 (default) and ALL Azure Speech SDK dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-dev \
     python3-pip \
-    ffmpeg \
     build-essential \
-    libssl-dev \
     libssl1.1 \
+    libssl-dev \
     ca-certificates \
     libasound2 \
     libasound2-dev \
+    libstdc++6 \
+    libgcc-s1 \
+    libc6 \
+    ffmpeg \
     wget \
     curl \
     && rm -rf /var/lib/apt/lists/*
