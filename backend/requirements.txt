@@ -1,9 +1,9 @@
-# FastAPI and server
-fastapi==0.115.6
+# FastAPI and server (Python 3.8 compatible versions)
+fastapi==0.109.2
 uvicorn[standard]==0.27.0
 python-multipart==0.0.20
-pydantic==2.11.1
-pydantic-settings==2.7.1
+pydantic==2.6.4
+pydantic-settings==2.2.1
 
 # Azure Speech Services
 azure-cognitiveservices-speech==1.31.0
