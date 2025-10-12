@@ -54,8 +54,10 @@ export async function POST(request: NextRequest) {
       completeness_score: Math.round(data.completeness_score || 100),
       feedback: data.message || 'Assessment complete',
       specific_feedback: data.message || 'Good work!',
-      ipa_transcription: text.split('').join(' '),
+      ipa_transcription: data.ipa_transcription || text.split('').join(' '),
+      expected_ipa: data.expected_ipa || text.split('').join(' '),
       recognized_text: data.recognized_text || text,
+      words: data.words || [],
     });
 
   } catch (error: any) {
