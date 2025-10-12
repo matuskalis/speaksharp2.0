@@ -139,8 +139,25 @@ def text_to_ipa_estimate(text: str) -> str:
 
 # Common English words to IPA (for testing/demo)
 COMMON_WORDS_IPA: Dict[str, str] = {
+    # Numbers
+    "one": "w ʌ n",
+    "two": "t u",
+    "three": "θ ɹ i",
+    "four": "f ɔ ɹ",
+    "five": "f aɪ v",
+    "six": "s ɪ k s",
+    "seven": "s ɛ v ə n",
+    "eight": "eɪ t",
+    "nine": "n aɪ n",
+    "ten": "t ɛ n",
+
+    # Common words
     "think": "θ ɪ ŋ k",
     "this": "ð ɪ s",
+    "that": "ð æ t",
+    "the": "ð ə",
+    "these": "ð i z",
+    "those": "ð oʊ z",
     "cat": "k æ t",
     "dog": "d ɔ ɡ",
     "hello": "h ɛ l oʊ",
@@ -148,6 +165,17 @@ COMMON_WORDS_IPA: Dict[str, str] = {
     "water": "w ɔ t ɚ",
     "computer": "k ə m p j u t ɚ",
     "pronunciation": "p ɹ ə n ʌ n s i eɪ ʃ ə n",
+
+    # Difficult sounds
+    "ship": "ʃ ɪ p",
+    "sheep": "ʃ i p",
+    "chip": "tʃ ɪ p",
+    "cheap": "tʃ i p",
+    "measure": "m ɛ ʒ ɚ",
+    "pleasure": "p l ɛ ʒ ɚ",
+    "ring": "ɹ ɪ ŋ",
+    "sing": "s ɪ ŋ",
+    "thing": "θ ɪ ŋ",
 }
 
 

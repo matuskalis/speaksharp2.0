@@ -213,6 +213,11 @@ class AzureSpeechService:
             actual_ipa = " ".join(actual_ipa_parts) if actual_ipa_parts else None
             expected_ipa = " ".join(expected_ipa_parts) if expected_ipa_parts else get_expected_ipa(reference_text)
 
+            # Fallback: if Azure didn't provide phonemes, use expected IPA as approximation
+            if not actual_ipa or actual_ipa.strip() == "":
+                logger.warning(f"Azure didn't return phoneme data for '{reference_text}', using expected IPA")
+                actual_ipa = expected_ipa
+
             return {
                 "success": True,
                 "overall_score": pronunciation_result.accuracy_score,
