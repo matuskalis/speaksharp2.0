@@ -8,6 +8,7 @@ import os
 import subprocess
 
 from app.core.config import settings
+from app.utils.phoneme_mapper import azure_word_to_ipa, get_expected_ipa
 
 logger = logging.getLogger(__name__)
 
@@ -168,26 +169,49 @@ class AzureSpeechService:
             ))
 
             words_data = []
+            actual_ipa_parts = []
+            expected_ipa_parts = []
+
             if "NBest" in result_json and len(result_json["NBest"]) > 0:
                 words_list = result_json["NBest"][0].get("Words", [])
 
                 for word_data in words_list:
+                    word = word_data.get("Word", "")
                     phonemes = []
+                    azure_phonemes = []
+
                     for phoneme_data in word_data.get("Phonemes", []):
+                        azure_phoneme = phoneme_data.get("Phoneme", "")
+                        azure_phonemes.append(azure_phoneme)
+
                         phonemes.append({
-                            "phoneme": phoneme_data.get("Phoneme", ""),
+                            "phoneme": azure_phoneme,
                             "accuracy": phoneme_data.get("Score", 0.0),
                             "error_type": self._classify_phoneme_error(
                                 phoneme_data.get("Score", 0.0)
                             )
                         })
 
+                    # Convert Azure phonemes to IPA
+                    word_ipa = azure_word_to_ipa(azure_phonemes)
+                    actual_ipa_parts.append(word_ipa)
+
+                    # Get expected IPA for this word
+                    word_expected_ipa = get_expected_ipa(word)
+                    if word_expected_ipa:
+                        expected_ipa_parts.append(word_expected_ipa)
+
                     words_data.append({
-                        "word": word_data.get("Word", ""),
+                        "word": word,
                         "accuracy": word_data.get("PronunciationAssessment", {}).get("AccuracyScore", 0.0),
                         "error_type": word_data.get("PronunciationAssessment", {}).get("ErrorType", "None"),
-                        "phonemes": phonemes
+                        "phonemes": phonemes,
+                        "ipa": word_ipa
                     })
+
+            # Combine IPA for full transcription
+            actual_ipa = " ".join(actual_ipa_parts) if actual_ipa_parts else None
+            expected_ipa = " ".join(expected_ipa_parts) if expected_ipa_parts else get_expected_ipa(reference_text)
 
             return {
                 "success": True,
@@ -198,6 +222,8 @@ class AzureSpeechService:
                 "pronunciation_score": pronunciation_result.pronunciation_score,
                 "recognized_text": result.text,
                 "expected_text": reference_text,
+                "ipa_transcription": actual_ipa,
+                "expected_ipa": expected_ipa,
                 "words": words_data,
                 "message": "Pronunciation assessed successfully"
             }
