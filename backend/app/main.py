@@ -94,3 +94,4 @@ if __name__ == "__main__":
         reload=settings.DEBUG,
         log_level="info" if settings.DEBUG else "warning"
     )
+# Force rebuild ne 12. októbra 2025 20:08:23 MDT
