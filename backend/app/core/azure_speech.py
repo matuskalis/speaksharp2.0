@@ -8,7 +8,8 @@ import os
 import subprocess
 
 from app.core.config import settings
-from app.utils.phoneme_mapper import azure_word_to_ipa, get_expected_ipa
+# Import phoneme_mapper inside functions to catch import errors
+# from app.utils.phoneme_mapper import azure_word_to_ipa, get_expected_ipa
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,16 @@ class AzureSpeechService:
         reference_text: str
     ) -> Dict[str, Any]:
         """Parse Azure pronunciation assessment result"""
+        logger.info(f"=== PARSING AZURE RESULT FOR: '{reference_text}' ===")
         try:
+            # Test import first
+            try:
+                from app.utils.phoneme_mapper import azure_word_to_ipa, get_expected_ipa
+                logger.info("✅ Successfully imported phoneme_mapper functions")
+            except ImportError as ie:
+                logger.error(f"❌ FAILED to import phoneme_mapper: {ie}", exc_info=True)
+                raise
+
             # Get pronunciation assessment result
             pronunciation_result = speechsdk.PronunciationAssessmentResult(result)
 
@@ -174,6 +184,7 @@ class AzureSpeechService:
 
             if "NBest" in result_json and len(result_json["NBest"]) > 0:
                 words_list = result_json["NBest"][0].get("Words", [])
+                logger.info(f"Found {len(words_list)} words in Azure response")
 
                 for word_data in words_list:
                     word = word_data.get("Word", "")
@@ -193,11 +204,14 @@ class AzureSpeechService:
                         })
 
                     # Convert Azure phonemes to IPA
+                    logger.info(f"Converting Azure phonemes for '{word}': {azure_phonemes}")
                     word_ipa = azure_word_to_ipa(azure_phonemes)
+                    logger.info(f"  → IPA result: '{word_ipa}'")
                     actual_ipa_parts.append(word_ipa)
 
                     # Get expected IPA for this word
                     word_expected_ipa = get_expected_ipa(word)
+                    logger.info(f"Expected IPA for '{word}': {word_expected_ipa}")
                     if word_expected_ipa:
                         expected_ipa_parts.append(word_expected_ipa)
 
@@ -213,12 +227,15 @@ class AzureSpeechService:
             actual_ipa = " ".join(actual_ipa_parts) if actual_ipa_parts else None
             expected_ipa = " ".join(expected_ipa_parts) if expected_ipa_parts else get_expected_ipa(reference_text)
 
+            logger.info(f"Final actual_ipa: '{actual_ipa}'")
+            logger.info(f"Final expected_ipa: '{expected_ipa}'")
+
             # Fallback: if Azure didn't provide phonemes, use expected IPA as approximation
             if not actual_ipa or actual_ipa.strip() == "":
                 logger.warning(f"Azure didn't return phoneme data for '{reference_text}', using expected IPA")
                 actual_ipa = expected_ipa
 
-            return {
+            result_dict = {
                 "success": True,
                 "overall_score": pronunciation_result.accuracy_score,
                 "accuracy_score": pronunciation_result.accuracy_score,
@@ -232,17 +249,22 @@ class AzureSpeechService:
                 "words": words_data,
                 "message": "Pronunciation assessed successfully"
             }
+            logger.info(f"✅ Returning IPA result: ipa_transcription={actual_ipa}, expected_ipa={expected_ipa}")
+            return result_dict
 
         except Exception as e:
-            logger.error(f"Error parsing Azure result: {str(e)}")
+            logger.error(f"❌ ERROR parsing Azure result: {str(e)}", exc_info=True)
+            # Still return IPA fields (null) so frontend knows to not show fake data
             return {
                 "success": True,
                 "overall_score": 75.0,
                 "accuracy_score": 75.0,
                 "recognized_text": result.text,
                 "expected_text": reference_text,
+                "ipa_transcription": None,
+                "expected_ipa": None,
                 "words": [],
-                "message": "Partial assessment (parsing error)"
+                "message": f"Partial assessment (parsing error: {str(e)})"
             }
 
     def _classify_phoneme_error(self, score: float) -> Optional[str]:
