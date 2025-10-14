@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       specific_feedback: `Error: ${error.message}`,
       ipa_transcription: null,  // Never show fake IPA
       expected_ipa: null,
-      recognized_text: text,
+      recognized_text: '',  // Empty string - text may not be in scope
     });
   }
 }
