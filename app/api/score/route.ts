@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     });
 
     const data = await response.json();
-    console.log('Backend response:', data);
+    console.log('Backend response:', JSON.stringify(data, null, 2));
 
     if (!response.ok) {
       console.error('Backend error:', data);
@@ -41,12 +41,24 @@ export async function POST(request: NextRequest) {
         completeness_score: 100,
         feedback: 'Error processing',
         specific_feedback: data.message || 'Backend error',
-        ipa_transcription: text.split('').join(' '),
+        ipa_transcription: null,  // Never show fake IPA
+        expected_ipa: null,
         recognized_text: text,
       });
     }
 
     // Map backend response to frontend format
+    // CRITICAL: If Azure didn't provide actual IPA, use expected_ipa as fallback (NOT fake letter splitting)
+    const actualIpa = data.ipa_transcription || data.expected_ipa;
+    const expectedIpa = data.expected_ipa;
+
+    console.log('IPA Debug:', {
+      from_backend_actual: data.ipa_transcription,
+      from_backend_expected: data.expected_ipa,
+      using_actual: actualIpa,
+      using_expected: expectedIpa
+    });
+
     return NextResponse.json({
       pronunciation_score: Math.round(data.overall_score || data.pronunciation_score || 75),
       accuracy_score: Math.round(data.accuracy_score || 75),
@@ -54,8 +66,8 @@ export async function POST(request: NextRequest) {
       completeness_score: Math.round(data.completeness_score || 100),
       feedback: data.message || 'Assessment complete',
       specific_feedback: data.message || 'Good work!',
-      ipa_transcription: data.ipa_transcription || text.split('').join(' '),
-      expected_ipa: data.expected_ipa || text.split('').join(' '),
+      ipa_transcription: actualIpa,  // Use expected_ipa as fallback, never fake splitting
+      expected_ipa: expectedIpa,
       recognized_text: data.recognized_text || text,
       words: data.words || [],
     });
@@ -70,8 +82,9 @@ export async function POST(request: NextRequest) {
       completeness_score: 100,
       feedback: 'Analysis complete',
       specific_feedback: `Error: ${error.message}`,
-      ipa_transcription: 'θ ɪ ŋ k',
-      recognized_text: 'think',
+      ipa_transcription: null,  // Never show fake IPA
+      expected_ipa: null,
+      recognized_text: text,
     });
   }
 }
