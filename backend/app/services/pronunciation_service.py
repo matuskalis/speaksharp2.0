@@ -50,24 +50,33 @@ class PronunciationService:
             if not azure_result.get("success", False):
                 return azure_result
 
-            # Step 2: Get IPA transcription from Allosaurus
+            # Step 2: Get IPA transcription from Allosaurus (only as fallback)
             logger.info("Detecting phonemes with Allosaurus")
-            ipa_transcription = self.phoneme_service.detect_phonemes(
+            allosaurus_ipa = self.phoneme_service.detect_phonemes(
                 audio_data=audio_data,
                 audio_format=audio_format
             )
 
-            # Step 3: Analyze pronunciation patterns
+            # Step 3: Use Azure IPA (already converted from phonemes), fallback to Allosaurus
+            # IMPORTANT: Azure IPA is more accurate because it's based on pronunciation assessment
+            azure_ipa = azure_result.get("ipa_transcription")
+            final_ipa = azure_ipa if azure_ipa else allosaurus_ipa
+
+            logger.info(f"IPA source: {'Azure (phoneme-based)' if azure_ipa else 'Allosaurus (audio-based)'}")
+
+            # Step 4: Analyze pronunciation patterns
             error_patterns = {}
-            if ipa_transcription:
+            if final_ipa:
                 error_patterns = self.phoneme_service.analyze_pronunciation_patterns(
-                    ipa_transcription
+                    final_ipa
                 )
 
-            # Step 4: Combine results
+            # Step 5: Combine results (don't overwrite Azure's IPA!)
             result = {
                 **azure_result,
-                "ipa_transcription": ipa_transcription,
+                # Keep Azure's IPA, only add Allosaurus if Azure didn't provide it
+                "ipa_transcription": final_ipa,
+                "allosaurus_ipa": allosaurus_ipa,  # Keep for debugging
                 "error_patterns": error_patterns
             }
 
