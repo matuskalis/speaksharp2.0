@@ -5,41 +5,27 @@ import { motion } from 'framer-motion';
 import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 
-// Scientifically-designed assessment targeting accent-diagnostic phonemes
 const DEMO_ITEMS = [
-  // Phase 1: TH Sound Tests (θ/ð) - Most diagnostic for Spanish, French, Chinese, Japanese, German
-  { type: 'word', text: 'think', ipa: 'θ ɪ ŋ k', difficulty: 'easy', target: 'θ (initial)', indicators: ['Spanish→t, French→s, Chinese→s/t'] },
-  { type: 'word', text: 'three', ipa: 'θ ɹ i', difficulty: 'medium', target: 'θr cluster', indicators: ['Tests both θ and r sounds'] },
-  { type: 'word', text: 'brother', ipa: 'b ɹ ʌ ð ə ɹ', difficulty: 'medium', target: 'ð (medial)', indicators: ['Spanish→d, French→z, Chinese→d'] },
-
-  // Phase 2: R/L Discrimination - Diagnostic for Chinese, Japanese, Korean
-  { type: 'word', text: 'right', ipa: 'ɹ aɪ t', difficulty: 'easy', target: 'r (initial)', indicators: ['Chinese/Japanese→l, Korean→intermediate'] },
-  { type: 'word', text: 'light', ipa: 'l aɪ t', difficulty: 'easy', target: 'l vs r', indicators: ['Minimal pair with "right"'] },
-  { type: 'word', text: 'really', ipa: 'ɹ i ə l i', difficulty: 'medium', target: 'r+l combo', indicators: ['Tests both r and l discrimination'] },
-
-  // Phase 3: V/W/B Discrimination - Spanish, Japanese, Indian, German
-  { type: 'word', text: 'very', ipa: 'v ɛ ɹ i', difficulty: 'easy', target: 'v (initial)', indicators: ['Spanish→b, German→f, Japanese→b'] },
-  { type: 'word', text: 'west', ipa: 'w ɛ s t', difficulty: 'easy', target: 'w (initial)', indicators: ['German→v, Indian→v/w variation'] },
-  { type: 'word', text: 'village', ipa: 'v ɪ l ɪ dʒ', difficulty: 'medium', target: 'v (medial)', indicators: ['Spanish→b, Japanese→b'] },
-
-  // Phase 4: Vowel Length Distinctions - Spanish, Japanese, Italian
-  { type: 'word', text: 'ship', ipa: 'ʃ ɪ p', difficulty: 'medium', target: 'ɪ (short i)', indicators: ['Spanish→i:, Japanese→i:'] },
-  { type: 'word', text: 'sheep', ipa: 'ʃ i p', difficulty: 'medium', target: 'i: vs ɪ', indicators: ['Minimal pair with "ship"'] },
-  { type: 'word', text: 'full', ipa: 'f ʊ l', difficulty: 'medium', target: 'ʊ (short u)', indicators: ['Spanish→u:, Japanese→u:'] },
-
-  // Phase 5: Final Consonants - Chinese, Japanese, Korean, Vietnamese
-  { type: 'word', text: 'bed', ipa: 'b ɛ d', difficulty: 'medium', target: 'd (final)', indicators: ['Chinese→drop, Japanese→weaken'] },
-  { type: 'word', text: 'back', ipa: 'b æ k', difficulty: 'medium', target: 'k (final)', indicators: ['Chinese→drop, Japanese→weaken'] },
-  { type: 'word', text: 'with', ipa: 'w ɪ θ', difficulty: 'hard', target: 'θ (final)', indicators: ['Compound test: final + θ'] },
-
-  // Phase 6: Consonant Clusters - Universal difficulty
-  { type: 'word', text: 'street', ipa: 's t ɹ i t', difficulty: 'hard', target: 'str cluster', indicators: ['Spanish→e-street, Japanese→sutorito'] },
-  { type: 'word', text: 'splash', ipa: 's p l æ ʃ', difficulty: 'hard', target: 'spl cluster', indicators: ['Chinese/Japanese break cluster'] },
-  { type: 'word', text: 'strength', ipa: 's t ɹ ɛ ŋ θ', difficulty: 'hard', target: 'ŋθ cluster', indicators: ['Complex final cluster + θ'] },
-
-  // Phase 7: Sentence-Level Prosody & Rhythm
-  { type: 'sentence', text: 'The weather is wonderful today', ipa: 'ð ə w ɛ ð ə ɹ ɪ z w ʌ n d ə ɹ f ə l t ə d eɪ', difficulty: 'medium', target: 'ð + w sounds', indicators: ['Tests θ/ð + w in context'] },
-  { type: 'sentence', text: 'She really loves very spicy food', ipa: 'ʃ i ɹ i ə l i l ʌ v z v ɛ ɹ i s p aɪ s i f u d', difficulty: 'hard', target: 'r/l/v combo', indicators: ['Tests r, l, v in rapid sequence'] }
+  { type: 'word', text: 'think', ipa: 'θ ɪ ŋ k', difficulty: 'easy' },
+  { type: 'word', text: 'three', ipa: 'θ ɹ i', difficulty: 'medium' },
+  { type: 'word', text: 'brother', ipa: 'b ɹ ʌ ð ə ɹ', difficulty: 'medium' },
+  { type: 'word', text: 'right', ipa: 'ɹ aɪ t', difficulty: 'easy' },
+  { type: 'word', text: 'light', ipa: 'l aɪ t', difficulty: 'easy' },
+  { type: 'word', text: 'really', ipa: 'ɹ i ə l i', difficulty: 'medium' },
+  { type: 'word', text: 'very', ipa: 'v ɛ ɹ i', difficulty: 'easy' },
+  { type: 'word', text: 'west', ipa: 'w ɛ s t', difficulty: 'easy' },
+  { type: 'word', text: 'village', ipa: 'v ɪ l ɪ dʒ', difficulty: 'medium' },
+  { type: 'word', text: 'ship', ipa: 'ʃ ɪ p', difficulty: 'medium' },
+  { type: 'word', text: 'sheep', ipa: 'ʃ i p', difficulty: 'medium' },
+  { type: 'word', text: 'full', ipa: 'f ʊ l', difficulty: 'medium' },
+  { type: 'word', text: 'bed', ipa: 'b ɛ d', difficulty: 'medium' },
+  { type: 'word', text: 'back', ipa: 'b æ k', difficulty: 'medium' },
+  { type: 'word', text: 'with', ipa: 'w ɪ θ', difficulty: 'hard' },
+  { type: 'word', text: 'street', ipa: 's t ɹ i t', difficulty: 'hard' },
+  { type: 'word', text: 'splash', ipa: 's p l æ ʃ', difficulty: 'hard' },
+  { type: 'word', text: 'strength', ipa: 's t ɹ ɛ ŋ θ', difficulty: 'hard' },
+  { type: 'sentence', text: 'The weather is wonderful today', ipa: 'ð ə w ɛ ð ə ɹ ɪ z w ʌ n d ə ɹ f ə l t ə d eɪ', difficulty: 'medium' },
+  { type: 'sentence', text: 'She really loves very spicy food', ipa: 'ʃ i ɹ i ə l i l ʌ v z v ɛ ɹ i s p aɪ s i f u d', difficulty: 'hard' }
 ];
 
 const TESTIMONIALS = [
