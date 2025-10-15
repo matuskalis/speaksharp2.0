@@ -579,7 +579,7 @@ export default function Home() {
               Phonetix
             </div>
             <p className="text-gray-400 mb-6">Real pronunciation assessment. Real results.</p>
-            <p className="text-sm text-gray-600 mt-6">© 2024 Phonetix. Powered by Microsoft Azure Speech Services.</p>
+            <p className="text-sm text-gray-600 mt-6">© 2025 Phonetix. Powered by Microsoft Azure Speech Services.</p>
           </div>
         </div>
       </footer>
