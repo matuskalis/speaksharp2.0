@@ -105,11 +105,15 @@ export default function Home() {
         setFeedback(data.feedback || 'Analysis complete');
         setSpecificFeedback(data.specific_feedback || '');
 
-        // Display IPA comparison
-        setIpaDisplay({
-          expected: expectedIPA,
-          actual: data.ipa_transcription || expectedIPA
-        });
+        // Display IPA comparison - only show actual IPA if detected
+        if (data.ipa_transcription) {
+          setIpaDisplay({
+            expected: expectedIPA,
+            actual: data.ipa_transcription
+          });
+        } else {
+          setIpaDisplay(null);
+        }
 
         setScores([...scores, score]);
         setIsProcessing(false);
@@ -121,7 +125,9 @@ export default function Home() {
     }
   };
 
-  const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+  const averageScore = scores.length > 0
+    ? scores.filter(s => typeof s === 'number').reduce((a, b) => a + b, 0) / scores.filter(s => typeof s === 'number').length
+    : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
@@ -427,10 +433,13 @@ export default function Home() {
                   const categoryScores: { [key: string]: number[] } = {};
                   DEMO_ITEMS.forEach((item, i) => {
                     if (!categoryScores[item.category]) categoryScores[item.category] = [];
-                    if (scores[i] !== undefined) categoryScores[item.category].push(scores[i]);
+                    if (scores[i] !== undefined && typeof scores[i] === 'number') {
+                      categoryScores[item.category].push(scores[i]);
+                    }
                   });
 
                   return Object.entries(categoryScores).map(([category, catScores]) => {
+                    if (catScores.length === 0) return null;
                     const avg = catScores.reduce((a, b) => a + b, 0) / catScores.length;
                     return (
                       <div key={category} className="p-4 bg-slate-900/50 rounded-xl">
@@ -462,7 +471,7 @@ export default function Home() {
                 {(() => {
                   const weakAreas = scores
                     .map((score, i) => ({ score, item: DEMO_ITEMS[i] }))
-                    .filter(({ score }) => score < 70)
+                    .filter(({ score }) => typeof score === 'number' && score < 70)
                     .slice(0, 3);
 
                   if (weakAreas.length === 0) {
