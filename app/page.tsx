@@ -24,10 +24,33 @@ const TESTIMONIALS = [
   { name: 'Yuki Tanaka', country: '🇯🇵 Japan', text: 'I can finally pronounce "th" sounds correctly. This app is magic!', rating: 5 }
 ];
 
+interface AssessmentResult {
+  text: string;
+  category: string;
+  score: number;
+  expectedIPA: string;
+  actualIPA: string | null;
+  recognizedText: string;
+  difficulty: string;
+}
+
+interface AIFeedback {
+  summary: string;
+  strengths: string[];
+  improvements: Array<{
+    sound: string;
+    issue: string;
+    practice: string;
+  }>;
+  encouragement: string;
+}
+
 export default function Home() {
   const [isRecording, setIsRecording] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [scores, setScores] = useState<number[]>([]);
+  const [assessmentResults, setAssessmentResults] = useState<AssessmentResult[]>([]);
+  const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
   const [isTestComplete, setIsTestComplete] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [feedback, setFeedback] = useState<string>('');
@@ -115,7 +138,19 @@ export default function Home() {
           setIpaDisplay(null);
         }
 
+        // Store detailed results
+        const result: AssessmentResult = {
+          text: expectedText,
+          category: currentItem.category,
+          score: score,
+          expectedIPA: expectedIPA,
+          actualIPA: data.ipa_transcription || null,
+          recognizedText: data.recognized_text || '',
+          difficulty: currentItem.difficulty
+        };
+
         setScores([...scores, score]);
+        setAssessmentResults([...assessmentResults, result]);
         setIsProcessing(false);
       };
     } catch (error) {
@@ -128,6 +163,24 @@ export default function Home() {
   const averageScore = scores.length > 0
     ? scores.filter(s => typeof s === 'number').reduce((a, b) => a + b, 0) / scores.filter(s => typeof s === 'number').length
     : 0;
+
+  const generateAIFeedback = async () => {
+    try {
+      const response = await axios.post('/api/feedback', {
+        results: assessmentResults
+      });
+      setAiFeedback(response.data);
+    } catch (error) {
+      console.error('Error generating AI feedback:', error);
+      // Set fallback feedback
+      setAiFeedback({
+        summary: "Assessment complete! Review your detailed scores above.",
+        strengths: ["You completed all 10 pronunciation items", "Shows dedication to improvement"],
+        improvements: [],
+        encouragement: "Keep practicing regularly to see continued improvement!"
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
@@ -319,6 +372,8 @@ export default function Home() {
                           setIpaDisplay(null);
                         } else {
                           setIsTestComplete(true);
+                          // Generate AI feedback after completing all items
+                          generateAIFeedback();
                         }
                       }}
                       className="flex-1 py-3 px-6 bg-gradient-to-r from-emerald-500 to-blue-500 hover:shadow-lg hover:shadow-emerald-500/50 rounded-xl transition font-semibold flex items-center justify-center gap-2 text-sm md:text-base"
@@ -464,26 +519,59 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Areas to Improve */}
-            <div className="mb-8 p-6 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-              <h3 className="text-xl font-bold mb-3">💡 Focus Areas</h3>
-              <ul className="text-left space-y-2 text-sm md:text-base text-gray-300">
-                {(() => {
-                  const weakAreas = scores
-                    .map((score, i) => ({ score, item: DEMO_ITEMS[i] }))
-                    .filter(({ score }) => typeof score === 'number' && score < 70)
-                    .slice(0, 3);
+            {/* AI-Generated Feedback */}
+            {aiFeedback ? (
+              <div className="space-y-6">
+                {/* Summary */}
+                <div className="p-6 bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-xl">
+                  <h3 className="text-xl font-bold mb-3">🎯 AI Analysis</h3>
+                  <p className="text-gray-200 text-base leading-relaxed">{aiFeedback.summary}</p>
+                </div>
 
-                  if (weakAreas.length === 0) {
-                    return <li>✅ Great work! All areas are strong. Keep practicing to maintain your skills.</li>;
-                  }
+                {/* Strengths */}
+                {aiFeedback.strengths.length > 0 && (
+                  <div className="p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+                    <h3 className="text-xl font-bold mb-3">✨ Your Strengths</h3>
+                    <ul className="space-y-2 text-gray-200">
+                      {aiFeedback.strengths.map((strength, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-emerald-400 mt-1">•</span>
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-                  return weakAreas.map(({ item }, i) => (
-                    <li key={i}>• Practice <span className="text-emerald-400 font-semibold">{item.category}</span> - try "{item.text}"</li>
-                  ));
-                })()}
-              </ul>
-            </div>
+                {/* Improvements */}
+                {aiFeedback.improvements.length > 0 && (
+                  <div className="p-6 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                    <h3 className="text-xl font-bold mb-3">💡 Areas to Improve</h3>
+                    <div className="space-y-4">
+                      {aiFeedback.improvements.map((improvement, i) => (
+                        <div key={i} className="bg-slate-800/50 p-4 rounded-lg">
+                          <div className="font-semibold text-emerald-400 mb-2">{improvement.sound}</div>
+                          <div className="text-sm text-gray-300 mb-2">{improvement.issue}</div>
+                          <div className="text-sm text-blue-300">
+                            <strong>Practice:</strong> {improvement.practice}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Encouragement */}
+                <div className="p-6 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl text-center">
+                  <p className="text-lg text-gray-200 italic">"{aiFeedback.encouragement}"</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 bg-blue-500/10 border border-blue-500/30 rounded-xl text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400 mb-3"></div>
+                <p className="text-gray-300">Generating personalized feedback...</p>
+              </div>
+            )}
 
             {/* CTA */}
             <div className="bg-gradient-to-br from-emerald-500/20 to-blue-500/20 p-6 md:p-8 rounded-2xl border border-emerald-500/30">
