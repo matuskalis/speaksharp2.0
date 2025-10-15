@@ -35,40 +35,53 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       console.error('Backend error:', data);
       return NextResponse.json({
-        pronunciation_score: 75,
-        accuracy_score: 75,
-        fluency_score: 70,
-        completeness_score: 100,
-        feedback: 'Error processing',
-        specific_feedback: data.message || 'Backend error',
-        ipa_transcription: null,  // Never show fake IPA
+        pronunciation_score: 0,
+        accuracy_score: 0,
+        fluency_score: 0,
+        completeness_score: 0,
+        feedback: 'Could not analyze your pronunciation',
+        specific_feedback: 'Please speak louder and closer to the microphone',
+        ipa_transcription: null,
         expected_ipa: null,
-        recognized_text: text,
+        recognized_text: '',
       });
     }
 
-    // Map backend response to frontend format
-    // CRITICAL: If Azure didn't provide actual IPA, use expected_ipa as fallback (NOT fake letter splitting)
-    const actualIpa = data.ipa_transcription || data.expected_ipa;
+    // STRICT MODE: Only show real IPA from Azure, never fake
+    const actualIpa = data.ipa_transcription;
     const expectedIpa = data.expected_ipa;
 
+    // If Azure couldn't detect IPA, return low score
+    if (!actualIpa) {
+      return NextResponse.json({
+        pronunciation_score: 30,
+        accuracy_score: 30,
+        fluency_score: 30,
+        completeness_score: 50,
+        feedback: 'Could not detect clear pronunciation',
+        specific_feedback: 'Speak louder and more clearly. Make sure your microphone is working.',
+        ipa_transcription: null,
+        expected_ipa: expectedIpa,
+        recognized_text: data.recognized_text || '',
+      });
+    }
+
     console.log('IPA Debug:', {
-      from_backend_actual: data.ipa_transcription,
-      from_backend_expected: data.expected_ipa,
-      using_actual: actualIpa,
-      using_expected: expectedIpa
+      actual: actualIpa,
+      expected: expectedIpa,
+      recognized: data.recognized_text
     });
 
     return NextResponse.json({
-      pronunciation_score: Math.round(data.overall_score || data.pronunciation_score || 75),
-      accuracy_score: Math.round(data.accuracy_score || 75),
-      fluency_score: Math.round(data.fluency_score || 75),
-      completeness_score: Math.round(data.completeness_score || 100),
+      pronunciation_score: Math.round(data.overall_score || data.pronunciation_score || 0),
+      accuracy_score: Math.round(data.accuracy_score || 0),
+      fluency_score: Math.round(data.fluency_score || 0),
+      completeness_score: Math.round(data.completeness_score || 0),
       feedback: data.message || 'Assessment complete',
-      specific_feedback: data.message || 'Good work!',
-      ipa_transcription: actualIpa,  // Use expected_ipa as fallback, never fake splitting
+      specific_feedback: data.specific_feedback || data.message || '',
+      ipa_transcription: actualIpa,
       expected_ipa: expectedIpa,
-      recognized_text: data.recognized_text || text,
+      recognized_text: data.recognized_text || '',
       words: data.words || [],
     });
 
