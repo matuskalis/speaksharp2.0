@@ -56,9 +56,42 @@ export default function Home() {
   const [feedback, setFeedback] = useState<string>('');
   const [specificFeedback, setSpecificFeedback] = useState<string>('');
   const [ipaDisplay, setIpaDisplay] = useState<{ expected: string; actual: string } | null>(null);
+  const [wordScores, setWordScores] = useState<Array<{ word: string; score: number }>>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Helper function to render sentence with word-level highlighting
+  const renderHighlightedSentence = () => {
+    const currentText = DEMO_ITEMS[currentWordIndex].text;
+
+    if (wordScores.length === 0) {
+      return <span className="text-gray-300">{currentText}</span>;
+    }
+
+    return (
+      <span>
+        {wordScores.map((wordData, idx) => {
+          const score = wordData.score;
+          let colorClass = 'text-gray-300';
+
+          if (score >= 80) {
+            colorClass = 'text-emerald-400'; // Correct
+          } else if (score >= 60) {
+            colorClass = 'text-yellow-400'; // Partial
+          } else if (score > 0) {
+            colorClass = 'text-red-400 font-bold'; // Wrong - emphasize
+          }
+
+          return (
+            <span key={idx} className={colorClass}>
+              {wordData.word}{idx < wordScores.length - 1 ? ' ' : ''}
+            </span>
+          );
+        })}
+      </span>
+    );
+  };
 
   const startRecording = async () => {
     try {
@@ -85,6 +118,7 @@ export default function Home() {
       setFeedback('Listening... Speak clearly!');
       setSpecificFeedback('');
       setIpaDisplay(null);
+      setWordScores([]);
     } catch (error) {
       console.error('Error accessing microphone:', error);
       alert('Could not access microphone. Please ensure microphone permissions are granted.');
@@ -127,6 +161,13 @@ export default function Home() {
 
         setFeedback(data.feedback || 'Analysis complete');
         setSpecificFeedback(data.specific_feedback || '');
+
+        // Store word-level scores for inline highlighting
+        if (data.words && Array.isArray(data.words)) {
+          setWordScores(data.words);
+        } else {
+          setWordScores([]);
+        }
 
         // Display IPA comparison - only show actual IPA if detected
         if (data.ipa_transcription) {
@@ -305,22 +346,23 @@ export default function Home() {
                 />
               </div>
 
-              {/* IPA Display */}
-              {ipaDisplay && (
+              {/* Inline Word Highlighting */}
+              {wordScores.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="mb-8 p-4 md:p-6 bg-slate-900/70 rounded-2xl border border-slate-700/50"
+                  className="mb-6 p-4 md:p-6 bg-slate-900/70 rounded-2xl border border-slate-700/50"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div className="text-left">
-                      <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Expected IPA</p>
-                      <p className="text-lg md:text-2xl font-mono text-emerald-400 break-all">/{ipaDisplay.expected}/</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Your IPA</p>
-                      <p className="text-lg md:text-2xl font-mono text-yellow-400 break-all">/{ipaDisplay.actual}/</p>
-                    </div>
+                  <p className="text-xs text-gray-400 mb-3 uppercase tracking-wide text-center">
+                    📊 Pronunciation Analysis
+                  </p>
+                  <div className="text-xl md:text-2xl text-center leading-relaxed mb-4">
+                    {renderHighlightedSentence()}
+                  </div>
+                  <div className="flex justify-center gap-4 text-xs text-gray-400">
+                    <span><span className="text-emerald-400">●</span> Correct</span>
+                    <span><span className="text-yellow-400">●</span> Partial</span>
+                    <span><span className="text-red-400">●</span> Needs work</span>
                   </div>
                 </motion.div>
               )}
@@ -330,11 +372,11 @@ export default function Home() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-8 p-4 md:p-8 bg-slate-900/80 rounded-2xl border border-slate-700/50"
+                  className="mb-20 p-4 md:p-6 bg-slate-900/80 rounded-2xl border border-slate-700/50"
                 >
-                  <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                    <h3 className="text-xl md:text-2xl font-bold">Your Score</h3>
-                    <div className={`text-4xl md:text-5xl font-bold ${
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <h3 className="text-lg md:text-xl font-bold">Your Score</h3>
+                    <div className={`text-3xl md:text-4xl font-bold ${
                       scores[scores.length - 1] >= 75 ? 'text-emerald-400' :
                       scores[scores.length - 1] >= 50 ? 'text-yellow-400' :
                       'text-red-400'
@@ -344,42 +386,12 @@ export default function Home() {
                   </div>
 
                   {specificFeedback && (
-                    <div className="p-3 md:p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-4">
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl mt-4">
                       <p className="text-xs md:text-sm text-blue-300">
                         💡 {specificFeedback}
                       </p>
                     </div>
                   )}
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => {
-                        setFeedback('');
-                        setSpecificFeedback('');
-                        setIpaDisplay(null);
-                      }}
-                      className="flex-1 py-3 px-6 bg-slate-700 hover:bg-slate-600 rounded-xl transition font-semibold text-sm md:text-base"
-                    >
-                      Try Again
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (currentWordIndex < DEMO_ITEMS.length - 1) {
-                          setCurrentWordIndex(currentWordIndex + 1);
-                          setFeedback('');
-                          setSpecificFeedback('');
-                          setIpaDisplay(null);
-                        } else {
-                          setIsTestComplete(true);
-                          // Generate AI feedback after completing all items
-                          generateAIFeedback();
-                        }
-                      }}
-                      className="flex-1 py-3 px-6 bg-gradient-to-r from-emerald-500 to-blue-500 hover:shadow-lg hover:shadow-emerald-500/50 rounded-xl transition font-semibold flex items-center justify-center gap-2 text-sm md:text-base"
-                    >
-                      Next <ArrowRight size={18} />
-                    </button>
-                  </div>
                 </motion.div>
               )}
             </div>
@@ -390,9 +402,9 @@ export default function Home() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={isRecording ? stopRecording : startRecording}
-                disabled={isProcessing || ipaDisplay !== null}
+                disabled={isProcessing || wordScores.length > 0}
                 className={`relative w-28 h-28 md:w-36 md:h-36 rounded-full flex items-center justify-center transition-all shadow-2xl ${
-                  isProcessing || ipaDisplay
+                  isProcessing || wordScores.length > 0
                     ? 'bg-slate-600 cursor-not-allowed opacity-50'
                     : isRecording
                     ? 'bg-gradient-to-br from-red-500 to-pink-500 animate-pulse shadow-red-500/50'
@@ -409,8 +421,8 @@ export default function Home() {
               </motion.button>
 
               <p className="mt-6 text-gray-400 h-6 text-center">
-                {ipaDisplay ?
-                  'Review your results above' :
+                {wordScores.length > 0 ?
+                  'Review your results - Use buttons at bottom' :
                   isProcessing ? 'Analyzing pronunciation with AI...' :
                   isRecording ? 'Recording... Click to stop' :
                   'Click microphone to start'}
@@ -419,7 +431,7 @@ export default function Home() {
 
             {/* Previous Scores */}
             {scores.length > 0 && (
-              <div className="mt-10">
+              <div className="mt-10 mb-20">
                 <p className="text-sm text-gray-400 mb-4 text-center font-semibold">Your Progress</p>
                 <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                   {scores.map((score, index) => (
@@ -443,6 +455,50 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Fixed Bottom Action Bar */}
+            {feedback && scores.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 p-4 z-50"
+              >
+                <div className="max-w-4xl mx-auto flex gap-3">
+                  <button
+                    onClick={() => {
+                      setFeedback('');
+                      setSpecificFeedback('');
+                      setIpaDisplay(null);
+                      setWordScores([]);
+                    }}
+                    className="flex-1 py-3 px-6 bg-slate-700 hover:bg-slate-600 rounded-xl transition font-semibold text-sm md:text-base"
+                  >
+                    🔄 Try Again
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (currentWordIndex < DEMO_ITEMS.length - 1) {
+                        setCurrentWordIndex(currentWordIndex + 1);
+                        setFeedback('');
+                        setSpecificFeedback('');
+                        setIpaDisplay(null);
+                        setWordScores([]);
+                      } else {
+                        setIsTestComplete(true);
+                        generateAIFeedback();
+                      }
+                    }}
+                    className="flex-1 py-3 px-6 bg-gradient-to-r from-emerald-500 to-blue-500 hover:shadow-lg hover:shadow-emerald-500/50 rounded-xl transition font-semibold flex items-center justify-center gap-2 text-sm md:text-base"
+                  >
+                    {currentWordIndex < DEMO_ITEMS.length - 1 ? (
+                      <>Next Sentence <ArrowRight size={18} /></>
+                    ) : (
+                      <>Finish & Get Feedback <ArrowRight size={18} /></>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
             )}
           </motion.div>
         ) : (
