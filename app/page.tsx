@@ -6,16 +6,16 @@ import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRig
 import axios from 'axios';
 
 const DEMO_ITEMS = [
-  { type: 'word', text: 'think', ipa: 'θ ɪ ŋ k', difficulty: 'easy', category: 'TH Sounds' },
-  { type: 'word', text: 'brother', ipa: 'b ɹ ʌ ð ə ɹ', difficulty: 'medium', category: 'TH Sounds' },
-  { type: 'word', text: 'right', ipa: 'ɹ aɪ t', difficulty: 'easy', category: 'R/L Sounds' },
-  { type: 'word', text: 'light', ipa: 'l aɪ t', difficulty: 'easy', category: 'R/L Sounds' },
-  { type: 'word', text: 'very', ipa: 'v ɛ ɹ i', difficulty: 'easy', category: 'V/W Sounds' },
-  { type: 'word', text: 'west', ipa: 'w ɛ s t', difficulty: 'easy', category: 'V/W Sounds' },
-  { type: 'word', text: 'ship', ipa: 'ʃ ɪ p', difficulty: 'medium', category: 'Vowels' },
-  { type: 'word', text: 'sheep', ipa: 'ʃ i p', difficulty: 'medium', category: 'Vowels' },
-  { type: 'word', text: 'street', ipa: 's t ɹ i t', difficulty: 'hard', category: 'Clusters' },
-  { type: 'sentence', text: 'The weather is wonderful today', ipa: 'ð ə w ɛ ð ə ɹ ɪ z w ʌ n d ə ɹ f ə l t ə d eɪ', difficulty: 'medium', category: 'Fluency' }
+  { type: 'sentence', text: 'I think the weather is getting better', ipa: 'aɪ θ ɪ ŋ k ð ə w ɛ ð ə ɹ ɪ z ɡ ɛ t ɪ ŋ b ɛ t ə ɹ', difficulty: 'easy', category: 'TH Sounds', focus: 'θ and ð sounds' },
+  { type: 'sentence', text: 'My brother and father are together', ipa: 'm aɪ b ɹ ʌ ð ə ɹ æ n d f ɑ ð ə ɹ ɑ ɹ t ə ɡ ɛ ð ə ɹ', difficulty: 'easy', category: 'TH Sounds', focus: 'voiced th (ð)' },
+  { type: 'sentence', text: 'The red car is really large', ipa: 'ð ə ɹ ɛ d k ɑ ɹ ɪ z ɹ i l i l ɑ ɹ dʒ', difficulty: 'easy', category: 'R/L Sounds', focus: 'R and L distinction' },
+  { type: 'sentence', text: 'I would like a glass of water', ipa: 'aɪ w ʊ d l aɪ k ə ɡ l æ s ə v w ɔ t ə ɹ', difficulty: 'medium', category: 'R/L Sounds', focus: 'L sounds and linking' },
+  { type: 'sentence', text: 'We have very good weather today', ipa: 'w i h æ v v ɛ ɹ i ɡ ʊ d w ɛ ð ə ɹ t ə d eɪ', difficulty: 'easy', category: 'V/W Sounds', focus: 'V and W distinction' },
+  { type: 'sentence', text: 'The ship will leave at three', ipa: 'ð ə ʃ ɪ p w ɪ l l i v æ t θ ɹ i', difficulty: 'medium', category: 'Vowel Sounds', focus: 'ship/sheep distinction' },
+  { type: 'sentence', text: 'She sells seashells by the seashore', ipa: 'ʃ i s ɛ l z s i ʃ ɛ l z b aɪ ð ə s i ʃ ɔ ɹ', difficulty: 'hard', category: 'Consonant Clusters', focus: 'S, SH, and clusters' },
+  { type: 'sentence', text: 'The strong student studied straight through', ipa: 'ð ə s t ɹ ɔ ŋ s t u d ə n t s t ʌ d i d s t ɹ eɪ t θ ɹ u', difficulty: 'hard', category: 'Consonant Clusters', focus: 'STR clusters' },
+  { type: 'sentence', text: 'Can you tell me where the library is', ipa: 'k æ n j u t ɛ l m i w ɛ ɹ ð ə l aɪ b ɹ ɛ ɹ i ɪ z', difficulty: 'medium', category: 'Connected Speech', focus: 'natural rhythm' },
+  { type: 'sentence', text: 'I need to schedule a meeting for three thirty', ipa: 'aɪ n i d t ə s k ɛ dʒ u l ə m i t ɪ ŋ f ɔ ɹ θ ɹ i θ ə ɹ t i', difficulty: 'hard', category: 'Complex Fluency', focus: 'full sentence fluency' }
 ];
 
 const TESTIMONIALS = [
@@ -244,7 +244,7 @@ export default function Home() {
 
           <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 border-2 border-emerald-500/40 rounded-full mb-8">
             <Sparkles size={20} className="text-emerald-400" />
-            <span className="text-base md:text-lg font-bold text-emerald-300">Take Your Free Assessment (2 min)</span>
+            <span className="text-base md:text-lg font-bold text-emerald-300">Read 10 Sentences • Get AI Feedback (3 min)</span>
           </div>
 
           {/* Social Proof */}
@@ -282,17 +282,16 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-4 flex flex-col items-center gap-2">
                 <span className="text-xs text-blue-400 uppercase tracking-widest font-semibold">
-                  {DEMO_ITEMS[currentWordIndex].type === 'word' ? '📝 Word' : '📖 Sentence'}
+                  📖 Read This Sentence
+                </span>
+                <span className="text-xs text-emerald-400 font-medium">
+                  Focus: {DEMO_ITEMS[currentWordIndex].focus}
                 </span>
               </div>
 
-              <div className={`font-bold mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent ${
-                DEMO_ITEMS[currentWordIndex].type === 'word'
-                  ? 'text-5xl md:text-6xl'
-                  : 'text-3xl md:text-4xl leading-relaxed'
-              }`}>
+              <div className="font-bold mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent text-2xl md:text-3xl leading-relaxed px-4 max-w-3xl mx-auto">
                 "{DEMO_ITEMS[currentWordIndex].text}"
               </div>
 
@@ -437,7 +436,7 @@ export default function Home() {
                       }`}
                     >
                       <div className="text-xs opacity-70 mb-1">
-                        {DEMO_ITEMS[index].type === 'word' ? '📝' : '📖'}
+                        #{index + 1}
                       </div>
                       <div className="font-bold text-xl">{score.toFixed(0)}%</div>
                     </motion.div>

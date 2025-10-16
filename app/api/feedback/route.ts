@@ -37,15 +37,15 @@ export async function POST(request: NextRequest) {
     }));
 
     // Build prompt for AI
-    const prompt = `You are an expert pronunciation coach analyzing a student's English pronunciation assessment. Provide personalized, specific feedback.
+    const prompt = `You are an expert pronunciation coach analyzing a student's English pronunciation assessment. The student read 10 complete sentences aloud, providing rich data on their pronunciation patterns, fluency, and rhythm. Provide personalized, specific feedback.
 
-Assessment Results:
+Assessment Results (Full Sentences):
 ${assessmentData.map((item, i) => `
-${i + 1}. "${item.word}" (${item.category})
+${i + 1}. "${item.word}" (${item.category} - ${item.difficulty})
    - Score: ${item.score}%
    - Expected IPA: ${item.expectedIPA || 'N/A'}
    - Actual IPA: ${item.actualIPA || 'Not detected'}
-   - Recognized: "${item.recognizedText || 'N/A'}"
+   - What they said: "${item.recognizedText || 'N/A'}"
 `).join('\n')}
 
 Category Performance:
@@ -66,10 +66,13 @@ Provide feedback in this exact JSON format:
 }
 
 Focus on:
-1. Specific sounds they struggled with (th, r, l, v, w, vowels)
-2. Actual pronunciation errors based on recognized text
-3. Actionable practice recommendations
-4. Encouragement based on their performance level`;
+1. Specific phoneme errors (θ/ð becoming t/d, ɹ/l confusion, v/w mixing)
+2. Patterns across sentences (e.g., "drops 'th' at word boundaries", "struggles with consonant clusters")
+3. Fluency issues (rhythm, linking, word stress) visible in sentence-level speech
+4. Comparison between expected and recognized text to identify systematic errors
+5. Actionable practice: specific sentences or exercises to improve
+
+Give specific examples from their actual sentences, not generic advice.`;
 
     // Call AI API (using Anthropic Claude)
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
