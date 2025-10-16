@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRight } from 'lucide-react';
 import axios from 'axios';
@@ -57,9 +57,22 @@ export default function Home() {
   const [specificFeedback, setSpecificFeedback] = useState<string>('');
   const [ipaDisplay, setIpaDisplay] = useState<{ expected: string; actual: string } | null>(null);
   const [wordScores, setWordScores] = useState<Array<{ word: string; score: number }>>([]);
+  const [showLowerContent, setShowLowerContent] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+
+  // Lazy load lower content after main UI renders
+  useEffect(() => {
+    // Defer loading of testimonials and features to improve initial page load
+    const timer = setTimeout(() => {
+      setShowLowerContent(true);
+    }, 1000); // Load after 1 second
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Helper function to render sentence with word-level highlighting
   const renderHighlightedSentence = () => {
@@ -91,6 +104,56 @@ export default function Home() {
         })}
       </span>
     );
+  };
+
+  // Swipe navigation handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    touchEndX.current = e.changedTouches[0].clientX;
+    handleSwipe();
+  };
+
+  const handleSwipe = () => {
+    // Only allow swipe when feedback is showing (after recording)
+    if (wordScores.length === 0) return;
+
+    const swipeThreshold = 50; // Minimum swipe distance in pixels
+    const swipeDelta = touchEndX.current - touchStartX.current;
+
+    // Swipe left (next sentence)
+    if (swipeDelta < -swipeThreshold && currentWordIndex < DEMO_ITEMS.length - 1) {
+      goToNextSentence();
+    }
+    // Swipe right (previous sentence)
+    else if (swipeDelta > swipeThreshold && currentWordIndex > 0) {
+      goToPreviousSentence();
+    }
+  };
+
+  const goToNextSentence = () => {
+    if (currentWordIndex < DEMO_ITEMS.length - 1) {
+      setCurrentWordIndex(currentWordIndex + 1);
+      setFeedback('');
+      setSpecificFeedback('');
+      setIpaDisplay(null);
+      setWordScores([]);
+    } else {
+      setIsTestComplete(true);
+      generateAIFeedback();
+    }
+  };
+
+  const goToPreviousSentence = () => {
+    if (currentWordIndex > 0) {
+      setCurrentWordIndex(currentWordIndex - 1);
+      setFeedback('');
+      setSpecificFeedback('');
+      setIpaDisplay(null);
+      setWordScores([]);
+    }
   };
 
   const startRecording = async () => {
@@ -254,11 +317,11 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-8 sm:py-12 md:py-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
+          className="text-center mb-8 sm:mb-12 md:mb-16"
         >
           {/* Trust Badge */}
           <motion.div
@@ -270,7 +333,7 @@ export default function Home() {
             <span className="text-sm text-emerald-300">Powered by Azure AI</span>
           </motion.div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-7xl font-bold mb-6 leading-tight px-4">
+          <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight px-2 sm:px-4">
             Master English Pronunciation
             <br />
             <span className="bg-gradient-to-r from-emerald-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -278,7 +341,7 @@ export default function Home() {
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-6 max-w-3xl mx-auto leading-relaxed px-4">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-4 sm:mb-6 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4">
             Real AI-powered phonetic analysis. Not fake scores. Not guesswork.
             <span className="text-emerald-400 font-semibold"> Actual pronunciation assessment</span> powered by Microsoft Azure.
           </p>
@@ -305,10 +368,12 @@ export default function Home() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-slate-800/40 backdrop-blur-xl rounded-3xl p-6 md:p-10 max-w-4xl mx-auto border border-slate-700/50 shadow-2xl"
+            className="bg-slate-800/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-10 max-w-4xl mx-auto border border-slate-700/50 shadow-2xl"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            <div className="text-center mb-8">
-              <div className="flex justify-between items-center mb-6">
+            <div className="text-center mb-4 sm:mb-6 md:mb-8">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
                 <div className="text-sm text-gray-400 font-medium">
                   Question {currentWordIndex + 1} of {DEMO_ITEMS.length}
                 </div>
@@ -332,12 +397,12 @@ export default function Home() {
                 </span>
               </div>
 
-              <div className="font-bold mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent text-2xl md:text-3xl leading-relaxed px-4 max-w-3xl mx-auto">
+              <div className="font-bold mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent text-xl sm:text-2xl md:text-3xl leading-relaxed px-2 sm:px-4 max-w-3xl mx-auto">
                 "{DEMO_ITEMS[currentWordIndex].text}"
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-slate-700/50 rounded-full h-3 mb-8">
+              <div className="w-full bg-slate-700/50 rounded-full h-3 mb-2">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${((currentWordIndex + 1) / DEMO_ITEMS.length) * 100}%` }}
@@ -346,17 +411,26 @@ export default function Home() {
                 />
               </div>
 
+              {/* Swipe Hint - Only show on mobile when results are visible */}
+              {wordScores.length > 0 && (
+                <div className="text-center mb-6 md:hidden">
+                  <p className="text-xs text-gray-500 animate-pulse">
+                    ← Swipe to navigate →
+                  </p>
+                </div>
+              )}
+
               {/* Inline Word Highlighting */}
               {wordScores.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="mb-6 p-4 md:p-6 bg-slate-900/70 rounded-2xl border border-slate-700/50"
+                  className="mb-4 sm:mb-6 p-3 sm:p-4 md:p-6 bg-slate-900/70 rounded-xl sm:rounded-2xl border border-slate-700/50"
                 >
-                  <p className="text-xs text-gray-400 mb-3 uppercase tracking-wide text-center">
+                  <p className="text-xs text-gray-400 mb-2 sm:mb-3 uppercase tracking-wide text-center">
                     📊 Pronunciation Analysis
                   </p>
-                  <div className="text-xl md:text-2xl text-center leading-relaxed mb-4">
+                  <div className="text-base sm:text-lg md:text-xl lg:text-2xl text-center leading-relaxed mb-3 sm:mb-4">
                     {renderHighlightedSentence()}
                   </div>
                   <div className="flex justify-center gap-4 text-xs text-gray-400">
@@ -372,7 +446,7 @@ export default function Home() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-20 p-4 md:p-6 bg-slate-900/80 rounded-2xl border border-slate-700/50"
+                  className="mb-20 p-3 sm:p-4 md:p-6 bg-slate-900/80 rounded-xl sm:rounded-2xl border border-slate-700/50"
                 >
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <h3 className="text-lg md:text-xl font-bold">Your Score</h3>
@@ -462,7 +536,8 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 p-4 z-50"
+                className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 p-3 sm:p-4 pb-safe z-50"
+                style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
               >
                 <div className="max-w-4xl mx-auto flex gap-3">
                   <button
@@ -477,18 +552,7 @@ export default function Home() {
                     🔄 Try Again
                   </button>
                   <button
-                    onClick={() => {
-                      if (currentWordIndex < DEMO_ITEMS.length - 1) {
-                        setCurrentWordIndex(currentWordIndex + 1);
-                        setFeedback('');
-                        setSpecificFeedback('');
-                        setIpaDisplay(null);
-                        setWordScores([]);
-                      } else {
-                        setIsTestComplete(true);
-                        generateAIFeedback();
-                      }
-                    }}
+                    onClick={goToNextSentence}
                     className="flex-1 py-3 px-6 bg-gradient-to-r from-emerald-500 to-blue-500 hover:shadow-lg hover:shadow-emerald-500/50 rounded-xl transition font-semibold flex items-center justify-center gap-2 text-sm md:text-base"
                   >
                     {currentWordIndex < DEMO_ITEMS.length - 1 ? (
@@ -506,16 +570,16 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-slate-800/40 backdrop-blur-xl rounded-3xl p-6 md:p-10 max-w-4xl mx-auto border border-slate-700/50 shadow-2xl"
+            className="bg-slate-800/40 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-10 max-w-4xl mx-auto border border-slate-700/50 shadow-2xl"
           >
-            <Trophy size={48} className="mx-auto mb-4 text-yellow-400" />
-            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-center">Your Assessment Report 📊</h2>
-            <p className="text-gray-400 text-center mb-8">Here's your detailed pronunciation breakdown</p>
+            <Trophy size={36} className="sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-yellow-400" />
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-center">Your Assessment Report 📊</h2>
+            <p className="text-sm sm:text-base text-gray-400 text-center mb-6 sm:mb-8">Here's your detailed pronunciation breakdown</p>
 
             {/* Overall Score */}
-            <div className="text-center mb-8 p-6 md:p-8 bg-slate-900/60 rounded-2xl">
-              <p className="text-sm text-gray-400 mb-2">Overall Score</p>
-              <div className="text-5xl md:text-7xl font-bold mb-2">
+            <div className="text-center mb-6 sm:mb-8 p-4 sm:p-6 md:p-8 bg-slate-900/60 rounded-xl sm:rounded-2xl">
+              <p className="text-xs sm:text-sm text-gray-400 mb-2">Overall Score</p>
+              <div className="text-4xl sm:text-5xl md:text-7xl font-bold mb-2">
                 <span className={`bg-gradient-to-r ${
                   averageScore >= 80
                     ? 'from-emerald-400 to-blue-400'
@@ -644,8 +708,11 @@ export default function Home() {
         )}
       </div>
 
-      {/* Testimonials */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 py-20">
+      {/* Lazy-loaded lower content (Testimonials & Features) */}
+      {showLowerContent && (
+        <>
+          {/* Testimonials */}
+          <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 py-20">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4">Loved by Learners Worldwide 🌍</h2>
         </div>
@@ -722,6 +789,8 @@ export default function Home() {
           </motion.div>
         </div>
       </div>
+        </>
+      )}
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-slate-800 mt-20">
