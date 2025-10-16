@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRight } from 'lucide-react';
+import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRight, User, LogOut } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '@/lib/auth-context';
+import AuthModal from '@/components/AuthModal';
 
 const DEMO_ITEMS = [
   { type: 'sentence', text: 'I think the weather is getting better', ipa: 'aɪ θ ɪ ŋ k ð ə w ɛ ð ə ɹ ɪ z ɡ ɛ t ɪ ŋ b ɛ t ə ɹ', difficulty: 'easy', category: 'TH Sounds', focus: 'θ and ð sounds' },
@@ -46,6 +48,8 @@ interface AIFeedback {
 }
 
 export default function Home() {
+  const { user, signOut } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [scores, setScores] = useState<number[]>([]);
@@ -304,16 +308,37 @@ export default function Home() {
         >
           ✨ Phonetix
         </motion.div>
-        <motion.button
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-4 md:px-6 py-2 md:py-2.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full hover:shadow-lg hover:shadow-emerald-500/50 transition-all font-semibold text-sm md:text-base"
-        >
-          <span className="hidden sm:inline">Free Assessment →</span>
-          <span className="sm:hidden">Try Free</span>
-        </motion.button>
+        {user ? (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-3"
+          >
+            <div className="hidden sm:flex items-center gap-2 text-gray-300">
+              <User size={18} />
+              <span className="text-sm">{user.email}</span>
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-full transition text-sm font-semibold"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </motion.div>
+        ) : (
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsAuthModalOpen(true)}
+            className="px-4 md:px-6 py-2 md:py-2.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full hover:shadow-lg hover:shadow-emerald-500/50 transition-all font-semibold text-sm md:text-base"
+          >
+            <span className="hidden sm:inline">Sign In / Sign Up →</span>
+            <span className="sm:hidden">Sign In</span>
+          </motion.button>
+        )}
       </nav>
 
       {/* Hero Section */}
@@ -805,6 +830,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+echo "=== Cloudflare DNS Fix for www.matuskalis.com ==="
+echo ""
+echo "The www subdomain is currently pointing to the BACKEND."
+echo "It needs to point to: speaksharp20-production.up.railway.app"
+echo ""
+echo "To fix this, go to Cloudflare Dashboard:"
+echo "1. Log in to https://dash.cloudflare.com"
+echo "2. Select domain: matuskalis.com"
+echo "3. Go to DNS → Records"
+echo "4. Find the CNAME record for 'www'"
+echo "5. Click Edit"
+echo "6. Change target from 'l099gfpi.up.railway.app' to 'speaksharp20-production.up.railway.app'"
+echo "7. Keep Proxy status ON (orange cloud)"
+echo "8. Save"
+echo ""
+echo "The site will work within 1-2 minutes after saving."
+echo ""
+echo "Current status:"
+dig +short www.matuskalis.com
+echo ""
