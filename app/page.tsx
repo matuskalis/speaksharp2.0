@@ -801,6 +801,7 @@ export default function Home() {
             </div>
             <p className="text-gray-400 mb-6">Real pronunciation assessment. Real results.</p>
             <p className="text-sm text-gray-600 mt-6">© 2025 Phonetix. Powered by Microsoft Azure Speech Services.</p>
+            <p className="text-xs text-gray-700 mt-2">v1.1</p>
           </div>
         </div>
       </footer>
