@@ -1,6 +1,6 @@
 # Phonetix Version History
 
-**Current Version:** v1.1
+**Current Version:** v1.2
 
 ---
 
@@ -25,6 +25,33 @@
 ---
 
 ## Changelog
+
+### v1.2 - October 16, 2025
+**Database & Authentication Foundation**
+
+**Features Added:**
+- ✅ Supabase authentication system
+- ✅ User sign up / sign in / sign out
+- ✅ Email verification flow
+- ✅ Automatic assessment saving to database (authenticated users only)
+- ✅ Database schema with Row Level Security (RLS)
+- ✅ SSR-safe Supabase client implementation
+- ✅ User profiles table with auto-creation on signup
+
+**Technical:**
+- Supabase integration (`@supabase/ssr`)
+- React Context API for auth state
+- Auth modal component with Framer Motion animations
+- TypeScript type safety for auth flows
+- Graceful degradation (works without Supabase)
+
+**Impact:**
+- Foundation for personalized lessons
+- User progress tracking enabled
+- Assessment history storage
+- Ready for premium subscriptions
+
+---
 
 ### v1.1 - October 16, 2025
 **Mobile Optimization Release**
@@ -77,7 +104,7 @@
 
 ### Code
 ```tsx
-<p className="text-xs text-gray-700 mt-2">v1.1</p>
+<p className="text-xs text-gray-700 mt-2">v1.2</p>
 ```
 
 ### Process
@@ -92,17 +119,17 @@
 
 **Minor Update (Bug Fix):**
 ```bash
-# Change v1.1 → v1.2
+# Change v1.2 → v1.3
 # Update VERSION.md
-git commit -m "v1.2: Fix swipe gesture threshold"
+git commit -m "v1.3: Fix swipe gesture threshold"
 git push
 ```
 
 **Major Update (New Feature):**
 ```bash
-# Change v1.1 → v2.0
+# Change v1.2 → v2.0
 # Update VERSION.md
-git commit -m "v2.0: Add user authentication system"
+git commit -m "v2.0: Add personalized lesson generation"
 git push
 ```
 
@@ -110,21 +137,22 @@ git push
 
 ## Upcoming Versions (Planned)
 
-### v1.2 - TBD
+### v1.3 - TBD
+- User dashboard with assessment history
+- Progress charts and analytics
 - Testimonial horizontal carousel
-- Collapsible IPA detail view
 - Additional mobile refinements
 
-### v1.3 - TBD
+### v1.4 - TBD
 - Service worker (offline support)
 - Dark mode toggle
 - Enhanced analytics
 
 ### v2.0 - TBD
-- User accounts and progress tracking
-- Subscription/payment system
-- Personalized lesson plans
-- Practice history dashboard
+- Personalized lesson generation (AI-powered)
+- Subscription/payment system (Stripe)
+- Custom practice mode
+- Advanced progress tracking
 
 ---
 

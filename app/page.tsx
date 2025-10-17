@@ -315,7 +315,7 @@ export default function Home() {
             completed_items: scores.length,
             results: assessmentResults,
             ai_feedback: aiFeedback,
-            test_version: 'v1.1'
+            test_version: 'v1.2'
           });
 
         if (error) {
@@ -867,7 +867,7 @@ export default function Home() {
             </div>
             <p className="text-gray-400 mb-6">Real pronunciation assessment. Real results.</p>
             <p className="text-sm text-gray-600 mt-6">© 2025 Phonetix. Powered by Microsoft Azure Speech Services.</p>
-            <p className="text-xs text-gray-700 mt-2">v1.1</p>
+            <p className="text-xs text-gray-700 mt-2">v1.2</p>
           </div>
         </div>
       </footer>
