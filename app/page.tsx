@@ -6,6 +6,7 @@ import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRig
 import axios from 'axios';
 import { useAuth } from '@/lib/auth-context';
 import AuthModal from '@/components/AuthModal';
+import { createClient } from '@/lib/supabase/client';
 
 const DEMO_ITEMS = [
   { type: 'sentence', text: 'I think the weather is getting better', ipa: 'aɪ θ ɪ ŋ k ð ə w ɛ ð ə ɹ ɪ z ɡ ɛ t ɪ ŋ b ɛ t ə ɹ', difficulty: 'easy', category: 'TH Sounds', focus: 'θ and ð sounds' },
@@ -289,6 +290,46 @@ export default function Home() {
       });
     }
   };
+
+  // Save assessment to database when completed (only for authenticated users)
+  useEffect(() => {
+    const saveAssessment = async () => {
+      // Only save if user is logged in and we have results
+      if (!user || !aiFeedback || assessmentResults.length === 0) return;
+
+      const supabase = createClient();
+      if (!supabase) {
+        console.log('Supabase not configured, skipping save');
+        return;
+      }
+
+      try {
+        const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+        const { error } = await supabase
+          .from('assessments')
+          .insert({
+            user_id: user.id,
+            average_score: averageScore,
+            total_items: DEMO_ITEMS.length,
+            completed_items: scores.length,
+            results: assessmentResults,
+            ai_feedback: aiFeedback,
+            test_version: 'v1.1'
+          });
+
+        if (error) {
+          console.error('Error saving assessment:', error);
+        } else {
+          console.log('Assessment saved successfully!');
+        }
+      } catch (error) {
+        console.error('Error saving assessment:', error);
+      }
+    };
+
+    saveAssessment();
+  }, [aiFeedback, user, assessmentResults, scores]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
