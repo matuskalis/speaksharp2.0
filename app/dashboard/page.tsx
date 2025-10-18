@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Calendar, Target, Award, Lock, ArrowRight, User } from 'lucide-react';
+import { TrendingUp, Calendar, Target, Award, Lock, ArrowRight, User, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -254,21 +254,21 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                {/* Upgrade CTA */}
+                {/* Lessons CTA */}
                 <div className="mt-8 p-6 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 border border-emerald-500/50 rounded-xl">
                   <div className="flex items-start gap-4">
-                    <Lock className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
+                    <BookOpen className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg mb-2">Get Personalized Lessons</h3>
+                      <h3 className="font-bold text-lg mb-2">Practice Your Weak Areas</h3>
                       <p className="text-gray-300 text-sm mb-4">
-                        Upgrade to Learner tier to get custom practice exercises targeting these weak areas!
+                        Get personalized lessons with exercises targeting these specific categories!
                       </p>
-                      <Link href="/pricing">
+                      <Link href="/lessons">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/50 transition inline-flex items-center gap-2"
                         >
-                          Upgrade to Learner <ArrowRight size={16} />
+                          View Personalized Lessons <ArrowRight size={16} />
                         </motion.button>
                       </Link>
                     </div>
