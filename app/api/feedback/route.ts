@@ -74,10 +74,10 @@ Focus on:
 
 Give specific examples from their actual sentences, not generic advice.`;
 
-    // Call AI API (using Anthropic Claude)
-    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    // Call AI API (using OpenAI ChatGPT)
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-    if (!ANTHROPIC_API_KEY) {
+    if (!OPENAI_API_KEY) {
       // Fallback to basic feedback if no API key
       return NextResponse.json({
         summary: "Assessment complete! Review your scores above.",
@@ -94,20 +94,23 @@ Give specific examples from their actual sentences, not generic advice.`;
       });
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 1024,
+        model: 'gpt-4o-mini',
         messages: [{
+          role: 'system',
+          content: 'You are an expert pronunciation coach. Respond with valid JSON only.'
+        }, {
           role: 'user',
           content: prompt
-        }]
+        }],
+        temperature: 0.7,
+        max_tokens: 1024
       })
     });
 
@@ -116,7 +119,7 @@ Give specific examples from their actual sentences, not generic advice.`;
     }
 
     const data = await response.json();
-    const feedbackText = data.content[0].text;
+    const feedbackText = data.choices[0].message.content;
 
     // Parse JSON from AI response
     const jsonMatch = feedbackText.match(/\{[\s\S]*\}/);
