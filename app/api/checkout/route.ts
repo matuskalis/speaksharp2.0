@@ -21,9 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = new Stripe(STRIPE_SECRET_KEY, {
-      apiVersion: '2024-12-18.acacia',
-    });
+    const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     // Define price IDs for each tier (these would be created in Stripe Dashboard)
     // For MVP, we'll create prices on the fly or use test price IDs

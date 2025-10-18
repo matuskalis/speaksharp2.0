@@ -14,9 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = new Stripe(STRIPE_SECRET_KEY, {
-      apiVersion: '2024-12-18.acacia',
-    });
+    const stripe = new Stripe(STRIPE_SECRET_KEY);
 
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
