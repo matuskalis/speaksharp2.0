@@ -294,7 +294,7 @@ export default function PricingPage() {
       <footer className="relative z-10 border-t border-slate-800 mt-20 py-12">
         <div className="max-w-7xl mx-auto px-6 text-center text-gray-400 text-sm">
           <p>© 2025 Phonetix. Powered by Azure Speech Services & OpenAI.</p>
-          <p className="text-xs text-gray-700 mt-2">v1.2</p>
+          <p className="text-xs text-gray-700 mt-2">v1.3</p>
         </div>
       </footer>
     </div>
