@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mic, MicOff, Star, Sparkles, Trophy, Target, Zap, CheckCircle, ArrowRight, User, LogOut } from 'lucide-react';
 import axios from 'axios';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import AuthModal from '@/components/AuthModal';
 import { createClient } from '@/lib/supabase/client';
@@ -349,7 +350,21 @@ export default function Home() {
         >
           ✨ Phonetix
         </motion.div>
-        {user ? (
+
+        <div className="flex items-center gap-6">
+          <Link href="/pricing">
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              whileHover={{ scale: 1.05 }}
+              className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 border border-emerald-500/50 rounded-full hover:bg-emerald-500/30 transition text-sm font-semibold"
+            >
+              <Star size={16} className="text-emerald-400" />
+              <span>Pricing</span>
+            </motion.button>
+          </Link>
+
+          {user ? (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -380,6 +395,7 @@ export default function Home() {
             <span className="sm:hidden">Sign In</span>
           </motion.button>
         )}
+        </div>
       </nav>
 
       {/* Hero Section */}
