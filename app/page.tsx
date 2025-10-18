@@ -364,6 +364,20 @@ export default function Home() {
             </motion.button>
           </Link>
 
+          {user && (
+            <Link href="/dashboard">
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                whileHover={{ scale: 1.05 }}
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-full transition text-sm font-semibold"
+              >
+                <Trophy size={16} className="text-blue-400" />
+                <span>Dashboard</span>
+              </motion.button>
+            </Link>
+          )}
+
           {user ? (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
