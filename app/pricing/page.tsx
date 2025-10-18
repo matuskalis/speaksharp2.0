@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Star, Zap, Crown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 const tiers = [
   {
@@ -72,13 +74,51 @@ const tiers = [
 
 export default function PricingPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-  const handleCTA = (tierName: string) => {
+  const handleCTA = async (tierName: string) => {
     if (tierName === 'Free') {
       router.push('/');
-    } else {
-      // TODO: Implement Stripe checkout
-      alert(`${tierName} tier coming soon! Stripe integration in progress.`);
+      return;
+    }
+
+    // Check if user is signed in
+    if (!user) {
+      alert('Please sign in first to subscribe!');
+      router.push('/');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Call checkout API
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier: tierName,
+          userId: user.id,
+          userEmail: user.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      alert(error.message || 'Something went wrong. Please try again.');
+      setLoading(false);
     }
   };
 
@@ -166,16 +206,17 @@ export default function PricingPage() {
 
               {/* CTA Button */}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: loading ? 1 : 1.02 }}
+                whileTap={{ scale: loading ? 1 : 0.98 }}
                 onClick={() => handleCTA(tier.name)}
+                disabled={loading}
                 className={`w-full py-3 rounded-lg font-semibold mb-8 transition ${
                   tier.highlighted
                     ? 'bg-gradient-to-r from-emerald-500 to-blue-500 hover:shadow-lg hover:shadow-emerald-500/50'
                     : 'bg-slate-700 hover:bg-slate-600'
-                }`}
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {tier.cta}
+                {loading ? 'Processing...' : tier.cta}
               </motion.button>
 
               {/* Features */}
